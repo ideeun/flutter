@@ -1,7 +1,9 @@
 from django.urls import path
-from . import views
+from .views import UserView, CurrencyView
 
 urlpatterns = [
-    path('currencies/', views.get_currencies, name='get_currencies'),
-    path('currencies/add_currency/', views.add_currency, name='add_currency'),
+    path('users/', UserView.as_view(), name='user'),
+    path('currencies/', CurrencyView.as_view(), name='currency'),
 ]
+
+

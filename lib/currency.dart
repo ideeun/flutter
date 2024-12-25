@@ -19,32 +19,53 @@ class _CurrencyTableScreenState extends State<CurrencyTableScreen> {
 
   // Получаем валюты с сервера
   Future<void> _fetchCurrencies() async {
+  try {
     final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/currencies/'));
 
     if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
+      final List<dynamic> data = json.decode(response.body);
       setState(() {
-        currencies = data.map((currency) => currency['name'] as String).toList();
+        currencies = data.map((currency) => currency['name'] as String).toList(); // Извлекаем только имена валют
       });
     } else {
-      throw Exception('Failed to load currencies');
+      _showSnackbar('Failed to load currencies: ${response.statusCode}');
     }
+  } catch (e) {
+    _showSnackbar('Error: $e');
+  }
   }
 
   // Добавляем валюту на сервер
   Future<void> _addCurrency(String name) async {
-  final response = await http.post(
-    Uri.parse('http://127.0.0.1:8000/api/currencies/add_currency/'),
-    headers: {'Content-Type': 'application/json'},
-    body: json.encode({'name': name}),
-  );
+  try {
+    final response = await http.post(
+      Uri.parse('http://127.0.0.1:8000/api/currencies/'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'name': name,  // Только название валюты
+      }),
+    );
 
-  if (response.statusCode == 201) {
-    _fetchCurrencies();
-(); // Обновляем список после добавления валюты
-  } else {
-    throw Exception('Failed to add currency');
+    if (response.statusCode == 201) {
+      _fetchCurrencies(); // Обновляем список валют после добавления
+      _showSnackbar('Currency added successfully!');
+    } else if (response.statusCode == 400) {
+      final error = json.decode(response.body)['error'] ?? 'Validation error';
+      _showSnackbar('Failed to add currency: $error');
+    } else {
+      _showSnackbar('Unexpected error: ${response.statusCode}');
+    }
+  } catch (e) {
+    _showSnackbar('Error: $e');
   }
+  }
+
+
+  void _showSnackbar(String message) {
+  final snackBar = SnackBar(content: Text(message));
+
+  // Используем ScaffoldMessenger для отображения SnackBar
+  ScaffoldMessenger.of(context).showSnackBar(snackBar);
 }
 
 
