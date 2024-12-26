@@ -25,10 +25,15 @@ class _UsersScreenState extends State<UsersScreen> {
     final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/users/'));
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      setState(() {
-        users = data;
-      });
+      final data = json.decode(response.body);
+      print(data);
+      if (data is List) {
+        setState(() {
+          users = data;
+        });
+      } else {
+        _showSnackbar('Unexpected data format.');
+      }
     } else {
       _showSnackbar('Failed to load users: ${response.statusCode}');
     }
@@ -40,6 +45,11 @@ class _UsersScreenState extends State<UsersScreen> {
 
   Future<void> _addUser(String username, String email, String password) async {
   try {
+
+    if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$").hasMatch(email)) {
+  _showSnackbar('Please enter a valid email address.');
+  return;
+}
     final response = await http.post(
       Uri.parse('http://127.0.0.1:8000/api/users/'), // Используем ваш эндпоинт
       headers: {'Content-Type': 'application/json'},
@@ -50,13 +60,20 @@ class _UsersScreenState extends State<UsersScreen> {
   
       }),
     );
+    if (username.isEmpty || email.isEmpty || password.isEmpty) {
+      _showSnackbar('All fields must be filled.');
+      return;
+}
 
     if (response.statusCode == 201) {
       _fetchUsers(); // Обновляем список пользователей после добавления
       _showSnackbar('User added successfully!');
-    } else if (response.statusCode == 400) {
-      final error = json.decode(response.body)['error'] ?? 'Validation error';
-      _showSnackbar('Failed to add user: $error');
+    } if (response.statusCode == 400) {
+  final responseBody = json.decode(response.body);
+  print('Error response body: $responseBody');
+  final error = responseBody['error'] ?? 'Validation error';
+  _showSnackbar('Failed to add user: ${error['detail'] ?? 'Unknown error'}');
+
     } else {
       _showSnackbar('Unexpected error: ${response.statusCode}');
     }
@@ -139,7 +156,7 @@ class _UsersScreenState extends State<UsersScreen> {
                 return Card(
                   margin: EdgeInsets.all(10),
                   child: ListTile(
-                    title: Text(user['name']),
+                    title: Text(user['username']?? 'Имя не предоставлено'),
                   ),
                 );
               },

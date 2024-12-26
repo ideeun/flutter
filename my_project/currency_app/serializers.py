@@ -1,17 +1,38 @@
-from rest_framework import serializers
 from .models import Currency
 from django.contrib.auth.models import User
+from rest_framework import serializers, status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import Event
+from currency_app.models import Currency
+from .models import User
 
+# Создание сериализатора для модели Event
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = ['id','user', 'currency', 'quantity', 'exchange_rate', 'total', 'event_type']
+
+# API для создания события
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'full_name', 'password']  # Добавьте поля, которые вы хотите отправлять
-        extra_kwargs = {'password': {'write_only': True}}  # Пароль должен быть только для записи
+        fields = ['id','username', 'email','password']  # Поля для работы
+        extra_kwargs = {'password': {'write_only': True}}  # Пароль только для записи
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        return user
+        try:# Хэшируем пароль перед сохранением
+            user = User(
+                email=validated_data['email'],
+                username=validated_data['username']
+            )
+            user.set_password(validated_data['password'])
+            user.save()
+            return user
+        except Exception as e:
+            raise serializers.ValidationError(f"Ошибка создания пользователя: {str(e)}")
+
 
 
 class CurrencySerializer(serializers.ModelSerializer):

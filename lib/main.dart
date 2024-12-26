@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/login.dart';
 import 'currency.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
-      home: CustomScreen(),
+      home: LoginScreen(),
     );
   }
 }

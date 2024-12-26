@@ -3,6 +3,7 @@ import 'currency.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'users_screen.dart';
+import 'events_screen.dart'; // Новый экран для отображения ивентов
 
 class CustomScreen extends StatefulWidget {
   @override
@@ -13,8 +14,8 @@ class _CustomScreenState extends State<CustomScreen> {
   final Color textColor = Colors.white;
 
   // Список валют
-  List<String> currencies = [];
-  String? selectedCurrency;  // Начальная валюта
+  List<Map<String, dynamic>> currencies = [];
+  int? selectedCurrencyId; // Идентификатор выбранной валюты
 
   // Контроллеры для текстовых полей
   final TextEditingController quantityController = TextEditingController();
@@ -28,7 +29,7 @@ class _CustomScreenState extends State<CustomScreen> {
   void initState() {
     super.initState();
     totalController.text = '0';
-    _fetchCurrencies(); // Начальное значение Total
+    _fetchCurrencies(); // Загрузка валют
   }
 
   Future<void> _fetchCurrencies() async {
@@ -36,36 +37,18 @@ class _CustomScreenState extends State<CustomScreen> {
 
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);
-      print(data);
       setState(() {
-        currencies = data.map((currency) => currency['name'] as String).toList();
+        currencies = data.map((currency) {
+          return {
+            'id': currency['id'], // Поле 'id' предполагается в ответе сервера
+            'name': currency['name'], // Поле 'name' для названия валюты
+          };
+        }).toList();
       });
     } else {
       throw Exception('Failed to load currencies');
     }
   }
-
-  // Future<void> _fetchCurrencies() async {
-  //   final url = Uri.parse('http://127.0.0.1:8000/api/currencies/'); // URL вашего API
-
-  //   try {
-  //     final response = await http.get(url);
-
-  //     if (response.statusCode == 200) {
-  //       // Если запрос успешен, парсим данные
-  //       List<String> fetchedCurrencies = List<String>.from(json.decode(response.body));
-  //       setState(() {
-  //         currencies = fetchedCurrencies;
-  //         selectedCurrency = currencies.isNotEmpty ? currencies.first : null; // Обновляем выбранную валюту
-  //       });
-  //     } else {
-  //       // Если ошибка в запросе
-  //       throw Exception('Failed to load currencies');
-  //     }
-  //   } catch (e) {
-  //     print('Error: $e');
-  //   }
-  // }
 
   // Функция для вычисления Total
   void calculateTotal() {
@@ -79,13 +62,61 @@ class _CustomScreenState extends State<CustomScreen> {
   }
 
   // Функция для добавления новой записи
-  void addEntry() {
+  Future<void> addEntry() async {
+    if (selectedCurrencyId == null) {
+      _showErrorDialog('Please select a currency');
+      return;
+    }
+
+    final user = '1'; // Передайте числовой ID пользователя
+    final quantity = double.tryParse(quantityController.text);
+    final exchangeRate = double.tryParse(exchangeRateController.text);
+    final total = double.tryParse(totalController.text);
+
+    if (quantity == null || exchangeRate == null || total == null) {
+      _showErrorDialog('Please enter valid numbers for quantity, exchange rate, and total.');
+      return;
+    }
+
+    if (!isSaleActive && !isBuyActive) {
+      _showErrorDialog('Please select whether it is a sale or a purchase.');
+      return;
+    }
+
+    final url = 'http://127.0.0.1:8000/api/events/';
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
+        'user': int.parse(user),
+        'currency': selectedCurrencyId, // Используем идентификатор валюты
+        'quantity': quantity,
+        'exchange_rate': exchangeRate,
+        'total': total,
+        'event_type': isSaleActive ? 'SELL' : isBuyActive ? 'BUY' : 'UNKNOWN',
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      _showSuccessDialog('Event added successfully!');
+      quantityController.clear();
+      exchangeRateController.clear();
+      totalController.text = '0';
+    } else {
+      _showErrorDialog('Failed to add event. Error: ${response.body}');
+    }
+  }
+
+  void _showErrorDialog(String message) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Entry Added'),
-          content: Text('Currency: $selectedCurrency\nQuantity: ${quantityController.text}\nExchange Rate: ${exchangeRateController.text}\nTotal: ${totalController.text}'),
+          title: Text('Error'),
+          content: Text(message),
           actions: <Widget>[
             TextButton(
               child: Text('OK'),
@@ -97,11 +128,26 @@ class _CustomScreenState extends State<CustomScreen> {
         );
       },
     );
+  }
 
-    // Очистка полей после добавления
-    quantityController.clear();
-    exchangeRateController.clear();
-    totalController.text = '0';
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Success'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // Функции для активации/деактивации стрелок
@@ -130,7 +176,7 @@ class _CustomScreenState extends State<CustomScreen> {
             return IconButton(
               icon: Icon(Icons.menu, color: textColor),
               onPressed: () {
-                Scaffold.of(context).openDrawer();  // Открытие Drawer при нажатии на иконку гамбургера
+                Scaffold.of(context).openDrawer();
               },
             );
           },
@@ -141,23 +187,16 @@ class _CustomScreenState extends State<CustomScreen> {
         child: ListView(
           children: <Widget>[
             DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-              ),
+              decoration: BoxDecoration(color: Colors.transparent),
               child: Text(
                 'Menu',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
               ),
             ),
             ListTile(
               leading: Icon(Icons.currency_exchange, color: textColor),
               title: Text('Currencies', style: TextStyle(color: textColor)),
               onTap: () {
-                // Действие для "Home" (например, вернуться на главный экран)
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => CurrencyTableScreen()),
@@ -168,7 +207,6 @@ class _CustomScreenState extends State<CustomScreen> {
               leading: Icon(Icons.person, color: textColor),
               title: Text('Users', style: TextStyle(color: textColor)),
               onTap: () {
-                // Переход на экран "Users"
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => UsersScreen()),
@@ -176,27 +214,13 @@ class _CustomScreenState extends State<CustomScreen> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.wallet, color: textColor),
-              title: Text('Kassa', style: TextStyle(color: textColor)),
+              leading: Icon(Icons.event, color: textColor),
+              title: Text('Events', style: TextStyle(color: textColor)),
               onTap: () {
-                // Действие для "Log Out"
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.document_scanner, color: textColor),
-              title: Text('Report', style: TextStyle(color: textColor)),
-              onTap: () {
-                // Действие для "Log Out"
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.delete, color: textColor),
-              title: Text('Clear', style: TextStyle(color: textColor)),
-              onTap: () {
-                // Действие для "Log Out"
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => EventsScreen()), // Новый экран для ивентов
+                );
               },
             ),
           ],
@@ -215,31 +239,11 @@ class _CustomScreenState extends State<CustomScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // SizedBox(height: 50),
-              // Row(
-              //   children: [
-              //     Icon(Icons.menu, color: textColor),
-              //     Expanded(
-              //       child: Center(
-              //         child: Text(
-              //           'HOME',
-              //           style: TextStyle(
-              //             fontSize: 32,
-              //             fontWeight: FontWeight.bold,
-              //             color: textColor,
-              //           ),
-              //         ),
-              //       ),
-              //     ),
-              //   ],
-              // ),
-              SizedBox(height: 40),
-              // SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   GestureDetector(
-                    onTap: toggleSale,  // Нажатие для активации продажи
+                    onTap: toggleSale,
                     child: Container(
                       width: 50,
                       height: 50,
@@ -249,13 +253,13 @@ class _CustomScreenState extends State<CustomScreen> {
                       ),
                       child: Icon(
                         Icons.arrow_upward,
-                        color: isSaleActive ? Colors.blueAccent : textColor, // Меняем цвет при активации
+                        color: isSaleActive ? Colors.blueAccent : textColor,
                       ),
                     ),
                   ),
                   SizedBox(width: 10),
                   GestureDetector(
-                    onTap: toggleBuy,  // Нажатие для активации покупки
+                    onTap: toggleBuy,
                     child: Container(
                       width: 50,
                       height: 50,
@@ -265,48 +269,39 @@ class _CustomScreenState extends State<CustomScreen> {
                       ),
                       child: Icon(
                         Icons.arrow_downward,
-                        color: isBuyActive ? Colors.green : textColor, // Меняем цвет при активации
+                        color: isBuyActive ? Colors.green : textColor,
                       ),
                     ),
                   ),
                 ],
               ),
               SizedBox(height: 20),
-              // Комбо-бокс для валюты
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
+              DropdownButton<int>(
+                value: selectedCurrencyId,
+                onChanged: (int? newValue) {
+                  setState(() {
+                    selectedCurrencyId = newValue;
+                  });
+                },
+                items: currencies.map<DropdownMenuItem<int>>((currency) {
+                  return DropdownMenuItem<int>(
+                    value: currency['id'],
+                    child: Text(
+                      currency['name'],
+                      style: TextStyle(color: textColor),
+                    ),
+                  );
+                }).toList(),
+                dropdownColor: Color(0xFF0F1624),
+                style: TextStyle(color: textColor),
+                hint: Text(
+                  'Select Currency',
+                  style: TextStyle(color: textColor.withOpacity(0.6)),
                 ),
-                child: DropdownButton<String>(
-                  value: selectedCurrency,
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      selectedCurrency = newValue;
-                    });
-                  },
-                  items: currencies.map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(
-                        value,
-                        style: TextStyle(color: textColor),
-                      ),
-                    );
-                  }).toList(),
-                  dropdownColor: Color(0xFF0F1624),  // Тема выпадающего списка
-                  style: TextStyle(color: textColor),
-                  hint: Text(
-                    'Select Currency',
-                    style: TextStyle(color: textColor.withOpacity(0.6)),
-                  ),
-                  isExpanded: true, // чтобы раскрывающийся список занимал всю ширину
-                  underline: Container(), // скрывает стандартную линию под DropdownButton
-                ),
+                isExpanded: true,
+                underline: Container(),
               ),
               SizedBox(height: 20),
-              // Поле для количества
               TextField(
                 controller: quantityController,
                 keyboardType: TextInputType.number,
@@ -322,11 +317,10 @@ class _CustomScreenState extends State<CustomScreen> {
                   ),
                 ),
                 onChanged: (value) {
-                  calculateTotal(); // Пересчитываем Total при изменении количества
+                  calculateTotal();
                 },
               ),
               SizedBox(height: 20),
-              // Поле для курса обмена
               TextField(
                 controller: exchangeRateController,
                 keyboardType: TextInputType.number,
@@ -342,11 +336,10 @@ class _CustomScreenState extends State<CustomScreen> {
                   ),
                 ),
                 onChanged: (value) {
-                  calculateTotal(); // Пересчитываем Total при изменении курса
+                  calculateTotal();
                 },
               ),
               SizedBox(height: 20),
-              // Поле для итоговой суммы (Total)
               TextField(
                 controller: totalController,
                 readOnly: true,
@@ -362,32 +355,18 @@ class _CustomScreenState extends State<CustomScreen> {
                   ),
                 ),
               ),
-              SizedBox(height: 40),
+              SizedBox(height: 20),
               Center(
-                child: Column(
-                  children: [
-                    ElevatedButton(
-                      onPressed: addEntry,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      child: Text('ADD', style: TextStyle(color: textColor)),
+                child: ElevatedButton(
+                  onPressed: addEntry,
+                  style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      child: Text('EVENTS', style: TextStyle(color: textColor)),
-                    ),
-                  ],
+                  ),
+                  child: Text('Submit'),
                 ),
               ),
             ],
