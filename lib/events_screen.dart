@@ -10,18 +10,19 @@ class EventsScreen extends StatefulWidget {
 class _EventsScreenState extends State<EventsScreen> {
   List<Map<String, dynamic>> events = [];
   Map<String, dynamic>? selectedEvent;
+  
 
   // Функция для получения данных о событиях с API
   Future<List<Map<String, dynamic>>> fetchEvents() async {
-  final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/events/'));
+    final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/events/'));
 
-  if (response.statusCode == 200) {
-    List data = json.decode(response.body);
-    return data.map((event) => event as Map<String, dynamic>).toList();
-  } else {
-    throw Exception('Failed to load events');
+    if (response.statusCode == 200) {
+      List data = json.decode(response.body);
+      return data.map((event) => event as Map<String, dynamic>).toList();
+    } else {
+      throw Exception('Failed to load events');
+    }
   }
-}
 
   // Функция для удаления события
   Future<void> deleteEvent(int eventId) async {
@@ -39,7 +40,7 @@ class _EventsScreenState extends State<EventsScreen> {
   // Функция для редактирования события
   Future<void> editEvent(Map<String, dynamic> updatedEvent) async {
     final response = await http.put(
-      Uri.parse('http://127.0.0.1:8000/api/events/${updatedEvent['id']}/'),
+      Uri.parse('http://127.0.0.1:8000/api/events/${updatedEvent['id']}'),
       headers: <String, String>{
         'Content-Type': 'application/json',
       },
@@ -89,7 +90,7 @@ class _EventsScreenState extends State<EventsScreen> {
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
                       columns: [
-                        DataColumn(label: Text('User')),
+                        DataColumn(label: Text('Date')),
                         DataColumn(label: Text('Currency')),
                         DataColumn(label: Text('Quantity')),
                         DataColumn(label: Text('Exchange Rate')),
@@ -105,7 +106,7 @@ class _EventsScreenState extends State<EventsScreen> {
                             });
                           },
                           cells: [
-                            DataCell(Text(event['user'].toString())),
+                            DataCell(Text(event['created_at'].toString())),  // Добавляем дату
                             DataCell(Text(event['currency'].toString())),
                             DataCell(Text(event['quantity'].toString())),
                             DataCell(Text(event['exchange_rate'].toString())),
@@ -178,7 +179,6 @@ class EditEventScreen extends StatefulWidget {
 }
 
 class _EditEventScreenState extends State<EditEventScreen> {
-  late TextEditingController userController;
   late TextEditingController currencyController;
   late TextEditingController quantityController;
   late TextEditingController exchangeRateController;
@@ -188,7 +188,6 @@ class _EditEventScreenState extends State<EditEventScreen> {
   @override
   void initState() {
     super.initState();
-    userController = TextEditingController(text: widget.event['user'].toString());
     currencyController = TextEditingController(text: widget.event['currency'].toString());
     quantityController = TextEditingController(text: widget.event['quantity'].toString());
     exchangeRateController = TextEditingController(text: widget.event['exchange_rate'].toString());
@@ -204,10 +203,6 @@ class _EditEventScreenState extends State<EditEventScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
-              controller: userController,
-              decoration: InputDecoration(labelText: 'User'),
-            ),
             TextField(
               controller: currencyController,
               decoration: InputDecoration(labelText: 'Currency'),
@@ -236,12 +231,12 @@ class _EditEventScreenState extends State<EditEventScreen> {
               onPressed: () {
                 Map<String, dynamic> updatedEvent = {
                   'id': widget.event['id'],
-                  'user': userController.text,
                   'currency': currencyController.text,
                   'quantity': double.parse(quantityController.text),
                   'exchange_rate': double.parse(exchangeRateController.text),
                   'total': double.parse(totalController.text),
                   'event_type': eventTypeController.text,
+                  // Не передаем поле 'user', так как оно больше не нужно
                 };
                 widget.onSave(updatedEvent);
               },

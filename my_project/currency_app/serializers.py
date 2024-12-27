@@ -7,11 +7,15 @@ from .models import Event
 from currency_app.models import Currency
 from .models import User
 
+class CurrencySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Currency
+        fields = ['id', 'name']
 # Создание сериализатора для модели Event
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
-        fields = ['id','user', 'currency', 'quantity', 'exchange_rate', 'total', 'event_type']
+        fields = ['id','user','currency', 'quantity', 'exchange_rate', 'total', 'event_type', 'created_at']
 
 # API для создания события
 
@@ -34,8 +38,3 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"Ошибка создания пользователя: {str(e)}")
 
 
-
-class CurrencySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Currency
-        fields = ['id', 'name']

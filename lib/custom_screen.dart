@@ -6,6 +6,10 @@ import 'users_screen.dart';
 import 'events_screen.dart'; // Новый экран для отображения ивентов
 
 class CustomScreen extends StatefulWidget {
+  final int userId;
+
+CustomScreen({required this.userId});
+
   @override
   _CustomScreenState createState() => _CustomScreenState();
 }
@@ -15,6 +19,7 @@ class _CustomScreenState extends State<CustomScreen> {
 
   // Список валют
   List<Map<String, dynamic>> currencies = [];
+  String? selectedCurrencyName;
   int? selectedCurrencyId; // Идентификатор выбранной валюты
 
   // Контроллеры для текстовых полей
@@ -33,22 +38,23 @@ class _CustomScreenState extends State<CustomScreen> {
   }
 
   Future<void> _fetchCurrencies() async {
-    final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/currencies/'));
+  final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/currencies/'));
 
-    if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
-      setState(() {
-        currencies = data.map((currency) {
-          return {
-            'id': currency['id'], // Поле 'id' предполагается в ответе сервера
-            'name': currency['name'], // Поле 'name' для названия валюты
-          };
-        }).toList();
-      });
-    } else {
-      throw Exception('Failed to load currencies');
-    }
+  if (response.statusCode == 200) {
+    List<dynamic> data = json.decode(response.body);
+    setState(() {
+      currencies = data.map((currency) {
+        return {
+          'id': currency['id'], // Поле 'id' предполагается в ответе сервера
+          'name': currency['name'], // Поле 'name' для названия валюты
+        };
+      }).toList();
+    });
+  } else {
+    throw Exception('Failed to load currencies');
   }
+}
+
 
   // Функция для вычисления Total
   void calculateTotal() {
@@ -63,52 +69,53 @@ class _CustomScreenState extends State<CustomScreen> {
 
   // Функция для добавления новой записи
   Future<void> addEntry() async {
-    if (selectedCurrencyId == null) {
-      _showErrorDialog('Please select a currency');
-      return;
-    }
-
-    final user = '1'; // Передайте числовой ID пользователя
-    final quantity = double.tryParse(quantityController.text);
-    final exchangeRate = double.tryParse(exchangeRateController.text);
-    final total = double.tryParse(totalController.text);
-
-    if (quantity == null || exchangeRate == null || total == null) {
-      _showErrorDialog('Please enter valid numbers for quantity, exchange rate, and total.');
-      return;
-    }
-
-    if (!isSaleActive && !isBuyActive) {
-      _showErrorDialog('Please select whether it is a sale or a purchase.');
-      return;
-    }
-
-    final url = 'http://127.0.0.1:8000/api/events/';
-
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: json.encode({
-        'user': int.parse(user),
-        'currency': selectedCurrencyId, // Используем идентификатор валюты
-        'quantity': quantity,
-        'exchange_rate': exchangeRate,
-        'total': total,
-        'event_type': isSaleActive ? 'SELL' : isBuyActive ? 'BUY' : 'UNKNOWN',
-      }),
-    );
-
-    if (response.statusCode == 201) {
-      _showSuccessDialog('Event added successfully!');
-      quantityController.clear();
-      exchangeRateController.clear();
-      totalController.text = '0';
-    } else {
-      _showErrorDialog('Failed to add event. Error: ${response.body}');
-    }
+  if (selectedCurrencyName == null) {  // Проверяем, что название валюты выбрано
+    _showErrorDialog('Please select a currency');
+    return;
   }
+
+  final user = widget.userId.toString();
+  final quantity = double.tryParse(quantityController.text);
+  final exchangeRate = double.tryParse(exchangeRateController.text);
+  final total = double.tryParse(totalController.text);
+
+  if (quantity == null || exchangeRate == null || total == null) {
+    _showErrorDialog('Please enter valid numbers for quantity, exchange rate, and total.');
+    return;
+  }
+
+  if (!isSaleActive && !isBuyActive) {
+    _showErrorDialog('Please select whether it is a sale or a purchase.');
+    return;
+  }
+
+  final url = 'http://127.0.0.1:8000/api/events/';
+
+  final response = await http.post(
+    Uri.parse(url),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: json.encode({
+      'user': int.parse(user),
+      'currency': selectedCurrencyName,  // Передаем название валюты
+      'quantity': quantity,
+      'exchange_rate': exchangeRate,
+      'total': total,
+      'event_type': isSaleActive ? 'SELL' : isBuyActive ? 'BUY' : 'UNKNOWN',
+    }),
+  );
+
+  if (response.statusCode == 201) {
+    _showSuccessDialog('Event added successfully!');
+    quantityController.clear();
+    exchangeRateController.clear();
+    totalController.text = '0';
+  } else {
+    _showErrorDialog('Failed to add event. Error: ${response.body}');
+  }
+}
+
 
   void _showErrorDialog(String message) {
     showDialog(
@@ -277,30 +284,32 @@ class _CustomScreenState extends State<CustomScreen> {
               ),
               SizedBox(height: 20),
               DropdownButton<int>(
-                value: selectedCurrencyId,
-                onChanged: (int? newValue) {
-                  setState(() {
-                    selectedCurrencyId = newValue;
-                  });
-                },
-                items: currencies.map<DropdownMenuItem<int>>((currency) {
-                  return DropdownMenuItem<int>(
-                    value: currency['id'],
-                    child: Text(
-                      currency['name'],
-                      style: TextStyle(color: textColor),
-                    ),
-                  );
-                }).toList(),
-                dropdownColor: Color(0xFF0F1624),
-                style: TextStyle(color: textColor),
-                hint: Text(
-                  'Select Currency',
-                  style: TextStyle(color: textColor.withOpacity(0.6)),
-                ),
-                isExpanded: true,
-                underline: Container(),
-              ),
+    value: selectedCurrencyId,
+    onChanged: (int? newValue) {
+    setState(() {
+      selectedCurrencyId = newValue;
+      selectedCurrencyName = currencies.firstWhere((currency) => currency['id'] == newValue)['name']; // Сохраняем название валюты
+    });
+  },
+  items: currencies.map<DropdownMenuItem<int>>((currency) {
+    return DropdownMenuItem<int>(
+      value: currency['id'],
+      child: Text(
+        currency['name'],
+        style: TextStyle(color: textColor),
+      ),
+    );
+  }).toList(),
+  dropdownColor: Color(0xFF0F1624),
+  style: TextStyle(color: textColor),
+  hint: Text(
+    'Select Currency',
+    style: TextStyle(color: textColor.withOpacity(0.6)),
+  ),
+  isExpanded: true,
+  underline: Container(),
+),
+
               SizedBox(height: 20),
               TextField(
                 controller: quantityController,

@@ -30,10 +30,18 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (response.statusCode == 200) {
-          // Успешный логин, переходим на CustomScreen
+          // Успешный логин: извлекаем ID пользователя
+          final data = jsonDecode(response.body);
+          print(response.body);
+          final userId = data['id'];
+          print(userId);
+
+          // Переход на CustomScreen с передачей ID
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => CustomScreen()),
+            MaterialPageRoute(
+              builder: (context) => CustomScreen(userId: userId),
+            ),
           );
         } else if (response.statusCode == 401) {
           setState(() {
@@ -115,13 +123,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-
-void main() {
-  runApp(MaterialApp(
-    home: LoginScreen(),
-    routes: {
-      '/dashboard': (context) => CustomScreen(), // Добавьте CustomScreen в маршруты
-    },
-  ));
-}
-
