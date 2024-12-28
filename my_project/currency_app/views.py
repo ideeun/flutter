@@ -77,7 +77,7 @@ class LoginView(APIView):
         if user:
             return Response({
                 'message': 'Login successful',
-                'id': user.id  # Возвращаем ID пользователя
+                'username': user.username  # Возвращаем ID пользователя
             }, status=status.HTTP_200_OK)
         return Response({'error': 'Invalid username or password'}, status=status.HTTP_401_UNAUTHORIZED)
 

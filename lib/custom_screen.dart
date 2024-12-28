@@ -6,9 +6,9 @@ import 'users_screen.dart';
 import 'events_screen.dart'; // Новый экран для отображения ивентов
 
 class CustomScreen extends StatefulWidget {
-  final int userId;
+  final String userName;
 
-CustomScreen({required this.userId});
+CustomScreen({required this.userName});
 
   @override
   _CustomScreenState createState() => _CustomScreenState();
@@ -74,7 +74,7 @@ class _CustomScreenState extends State<CustomScreen> {
     return;
   }
 
-  final user = widget.userId.toString();
+  final user = widget.userName;
   final quantity = double.tryParse(quantityController.text);
   final exchangeRate = double.tryParse(exchangeRateController.text);
   final total = double.tryParse(totalController.text);
@@ -97,7 +97,7 @@ class _CustomScreenState extends State<CustomScreen> {
       'Content-Type': 'application/json',
     },
     body: json.encode({
-      'user': int.parse(user),
+      'user': user,
       'currency': selectedCurrencyName,  // Передаем название валюты
       'quantity': quantity,
       'exchange_rate': exchangeRate,
@@ -201,6 +201,16 @@ class _CustomScreenState extends State<CustomScreen> {
               ),
             ),
             ListTile(
+              leading: Icon(Icons.event, color: textColor),
+              title: Text('Events', style: TextStyle(color: textColor)),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => EventsScreen()), // Новый экран для ивентов
+                );
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.currency_exchange, color: textColor),
               title: Text('Currencies', style: TextStyle(color: textColor)),
               onTap: () {
@@ -221,22 +231,34 @@ class _CustomScreenState extends State<CustomScreen> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.event, color: textColor),
-              title: Text('Events', style: TextStyle(color: textColor)),
+              leading: Icon(Icons.document_scanner_rounded, color: textColor),
+              title: Text('Reports', style: TextStyle(color: textColor)),
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => EventsScreen()), // Новый экран для ивентов
-                );
+              Navigator.pop(context);
               },
             ),
+            ListTile(
+              leading: Icon(Icons.wallet, color: textColor),
+              title: Text('Kassa', style: TextStyle(color: textColor)),
+              onTap: () {
+              Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_forever, color: textColor),
+              title: Text('Clear', style: TextStyle(color: textColor)),
+              onTap: () {
+              Navigator.pop(context);
+              },
+            ),
+            
           ],
         ),
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF0F1624), Color(0xFF6C63FF)],
+            colors: [Color.fromARGB(255, 15, 24, 66), Color.fromARGB(255, 95, 95, 176)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -247,67 +269,113 @@ class _CustomScreenState extends State<CustomScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: toggleSale,
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.arrow_upward,
-                        color: isSaleActive ? Colors.blueAccent : textColor,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: toggleBuy,
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.arrow_downward,
-                        color: isBuyActive ? Colors.green : textColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+    GestureDetector(
+      onTap: toggleSale,
+      child: Transform.translate(
+        offset: isSaleActive ? Offset(0, -5) : Offset.zero, // Смещение при выборе
+        child: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isSaleActive
+                  ? [const Color.fromARGB(255, 51, 5, 235), const Color.fromARGB(255, 20, 162, 233)]
+                  : [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.1)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.circular(10), // Округленная линия
+            boxShadow: isSaleActive
+                ? [BoxShadow(color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)]
+                : [],
+          ),
+          child: Icon(
+            Icons.arrow_upward,
+            color: isSaleActive ? const Color.fromARGB(255, 251, 251, 251) : textColor,
+          ),
+        ),
+      ),
+    ),
+    SizedBox(width: 10),
+    GestureDetector(
+      onTap: toggleBuy,
+      child: Transform.translate(
+        offset: isBuyActive ? Offset(0, -5) : Offset.zero, // Смещение при выборе
+        child: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isBuyActive
+                  ? [const Color.fromARGB(255, 30, 194, 231), const Color.fromARGB(255, 124, 75, 224)]
+                  : [const Color.fromARGB(255, 197, 192, 205).withOpacity(0.1), Colors.white.withOpacity(0.1)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.circular(10), // Округленная линия
+            boxShadow: isBuyActive
+                ? [BoxShadow(color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)]
+                : [],
+          ),
+          child: Icon(
+            Icons.arrow_downward,
+            color: isBuyActive ? const Color.fromARGB(255, 238, 242, 239) : textColor,
+          ),
+        ),
+      ),
+    ),
+  ],
+),
+
               SizedBox(height: 20),
-              DropdownButton<int>(
+              InputDecorator(
+  decoration: InputDecoration(
+    filled: true,
+    fillColor: Colors.white.withOpacity(0.1),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(20),
+      borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+    ),
+    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Уменьшаем отступы
+    isDense: true, // Уменьшаем высоту
+  ),
+  child: DropdownButton<int>(
     value: selectedCurrencyId,
     onChanged: (int? newValue) {
-    setState(() {
-      selectedCurrencyId = newValue;
-      selectedCurrencyName = currencies.firstWhere((currency) => currency['id'] == newValue)['name']; // Сохраняем название валюты
-    });
-  },
-  items: currencies.map<DropdownMenuItem<int>>((currency) {
-    return DropdownMenuItem<int>(
-      value: currency['id'],
-      child: Text(
-        currency['name'],
-        style: TextStyle(color: textColor),
+      setState(() {
+        selectedCurrencyId = newValue;
+        selectedCurrencyName = currencies.firstWhere((currency) => currency['id'] == newValue)['name'];
+      });
+    },
+    items: currencies.map<DropdownMenuItem<int>>((currency) {
+      return DropdownMenuItem<int>(
+        value: currency['id'],
+        child: Text(
+          currency['name'],
+          style: TextStyle(
+            color: textColor,
+            fontSize: 14, // Уменьшаем шрифт
+          ),
+        ),
+      );
+    }).toList(),
+    dropdownColor: Color(0xFF0F1624),
+    style: TextStyle(
+      color: textColor,
+      fontSize: 14, // Уменьшаем шрифт
+    ),
+    hint: Text(
+      'Select Currency',
+      style: TextStyle(
+        color: textColor.withOpacity(0.6),
+        fontSize: 14, // Уменьшаем шрифт
       ),
-    );
-  }).toList(),
-  dropdownColor: Color(0xFF0F1624),
-  style: TextStyle(color: textColor),
-  hint: Text(
-    'Select Currency',
-    style: TextStyle(color: textColor.withOpacity(0.6)),
+    ),
+    isExpanded: true,
+    underline: Container(), // Убираем подчеркивание
   ),
-  isExpanded: true,
-  underline: Container(),
 ),
 
               SizedBox(height: 20),

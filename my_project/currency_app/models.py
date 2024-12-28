@@ -10,7 +10,7 @@ class Currency(models.Model):
 
 class Event(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)    
+    user = models.CharField(max_length=100)    
     currency = models.CharField(max_length=50)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     exchange_rate = models.DecimalField(max_digits=10, decimal_places=4)
@@ -19,7 +19,7 @@ class Event(models.Model):
     
 
     def __str__(self):
-        return f"Event {self.id} - {self.currency}"
+        return f"Event {self.id} - {self.currency} by {self.user.username}"  # Здесь предполагается, что у пользователя есть поле 'username'
 
 # Используйте только одну модель User, если хотите настроить свою модель, обязательно укажите это в settings.py
 class User(AbstractUser):

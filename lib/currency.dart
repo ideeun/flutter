@@ -150,42 +150,47 @@ class _CurrencyTableScreenState extends State<CurrencyTableScreen> {
         title: Text('Currencies'),
         backgroundColor: Color.fromARGB(255, 6, 16, 38),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: currencies.length,
-              itemBuilder: (context, index) {
-                final currency = currencies[index];
-                return ListTile(
-                  title: Text(
-                    currency['name'],
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.edit, color: Colors.white),
-                        onPressed: () {
-                          _showEditDialog(currency['id'], currency['name']);
-                        },
+          Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  itemCount: currencies.length,
+                  itemBuilder: (context, index) {
+                    final currency = currencies[index];
+                    return ListTile(
+                      title: Text(
+                        currency['name'],
+                        style: TextStyle(color: Colors.white),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.delete, color: Colors.white),
-                        onPressed: () {
-                          _deleteCurrency(currency['id']);
-                        },
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit, color: Colors.white),
+                            onPressed: () {
+                              _showEditDialog(currency['id'], currency['name']);
+                            },
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.white),
+                            onPressed: () {
+                              _deleteCurrency(currency['id']);
+                            },
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: FloatingActionButton(
               onPressed: () {
                 // Показать диалоговое окно для добавления валюты
                 showDialog(
@@ -226,13 +231,8 @@ class _CurrencyTableScreenState extends State<CurrencyTableScreen> {
                   },
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              child: Text('Add Currency'),
+              backgroundColor: Colors.blueAccent,
+              child: Icon(Icons.add),
             ),
           ),
         ],

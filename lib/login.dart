@@ -33,14 +33,14 @@ class _LoginScreenState extends State<LoginScreen> {
           // Успешный логин: извлекаем ID пользователя
           final data = jsonDecode(response.body);
           print(response.body);
-          final userId = data['id'];
-          print(userId);
+          final userName = data['username'];
+          print(userName);
 
           // Переход на CustomScreen с передачей ID
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => CustomScreen(userId: userId),
+              builder: (context) => CustomScreen(userName: userName),
             ),
           );
         } else if (response.statusCode == 401) {
