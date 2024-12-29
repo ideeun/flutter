@@ -8,7 +8,7 @@ from .models import User, Currency, Event
 
 class EventListView(APIView):
     """
-    Получение списка всех событий
+    Получение списка всех событий, создание нового события и удаление всех событий
     """
     def get(self, request):
         events = Event.objects.all()
@@ -25,7 +25,12 @@ class EventListView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+    def delete(self, request):
+        # Удаление всех событий
+        Event.objects.all().delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    
 class EventDetailView(APIView):
     """
     Получение, редактирование или удаление конкретного события
@@ -104,6 +109,32 @@ class UserView(APIView):
         # Возвращаем ошибки валидации
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def put(self, request, id):
+        """Редактирование пользователя."""
+        try:
+            user = User.objects.get(id=id)
+        except User.DoesNotExist:
+            return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Обновление данных пользователя
+        serializer = UserSerializer(user, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'User updated successfully'}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, id):
+        """Удаление пользователя."""
+        try:
+            user = User.objects.get(id=id)
+        except User.DoesNotExist:
+            return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Удаление пользователя
+        user.delete()
+        return Response({'message': 'User deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 class CurrencyView(APIView):
     
     # Получить все валюты

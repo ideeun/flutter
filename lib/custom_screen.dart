@@ -3,7 +3,8 @@ import 'currency.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'users_screen.dart';
-import 'events_screen.dart'; // Новый экран для отображения ивентов
+import 'events_screen.dart';
+import "kassa_screen.dart"; // Новый экран для отображения ивентов
 
 class CustomScreen extends StatefulWidget {
   final String userName;
@@ -54,6 +55,45 @@ class _CustomScreenState extends State<CustomScreen> {
     throw Exception('Failed to load currencies');
   }
 }
+
+void _showClearConfirmationDialog() {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Confirm Clear'),
+        content: Text('Are you sure you want to clear all events? This action cannot be undone.'),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Cancel'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: Text('Clear'),
+            onPressed: () {
+              clearEvents();  // Очищаем ивенты
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+// Функция для очистки всех ивентов
+Future<void> clearEvents() async {
+  final response = await http.delete(Uri.parse('http://127.0.0.1:8000/api/events/'));
+
+  if (response.statusCode == 200) {
+    _showSuccessDialog('All events cleared!');
+  } else {
+    _showErrorDialog('Failed to clear events. Error: ${response.body}');
+  }
+}
+
 
 
   // Функция для вычисления Total
@@ -190,7 +230,7 @@ class _CustomScreenState extends State<CustomScreen> {
         ),
       ),
       drawer: Drawer(
-        backgroundColor: Color(0xFF0F1624),
+        backgroundColor: Color.fromARGB(255, 15, 22, 36),
         child: ListView(
           children: <Widget>[
             DrawerHeader(
@@ -241,16 +281,20 @@ class _CustomScreenState extends State<CustomScreen> {
               leading: Icon(Icons.wallet, color: textColor),
               title: Text('Kassa', style: TextStyle(color: textColor)),
               onTap: () {
-              Navigator.pop(context);
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => CashScreen()),
+                );
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete_forever, color: textColor),
-              title: Text('Clear', style: TextStyle(color: textColor)),
-              onTap: () {
-              Navigator.pop(context);
-              },
-            ),
+  leading: Icon(Icons.delete_forever, color: textColor),
+  title: Text('Clear', style: TextStyle(color: textColor)),
+  onTap: () {
+    Navigator.pop(context);
+    _showClearConfirmationDialog();
+  },
+),
             
           ],
         ),
@@ -258,7 +302,7 @@ class _CustomScreenState extends State<CustomScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color.fromARGB(255, 15, 24, 66), Color.fromARGB(255, 95, 95, 176)],
+            colors: [Color.fromARGB(255, 134, 140, 138), Color.fromARGB(255, 10, 71, 42)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),

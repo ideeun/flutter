@@ -17,7 +17,6 @@ class _EventsScreenState extends State<EventsScreen> {
   String? selectedCurrency;
   String eventTypeFilter = 'All';
 
-  // Функция для получения данных о событиях с API
   Future<List<Map<String, dynamic>>> fetchEvents() async {
     final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/events/'));
 
@@ -29,22 +28,20 @@ class _EventsScreenState extends State<EventsScreen> {
     }
   }
 
-  // Функция для удаления события
   Future<void> deleteEvent(int eventId) async {
     final response = await http.delete(Uri.parse('http://127.0.0.1:8000/api/events/$eventId/'));
 
     if (response.statusCode == 204) {
       setState(() {
         events.removeWhere((event) => event['id'] == eventId);
-        selectedEvent = null;  // Сбрасываем выбранное событие
-        filterEvents(); // Применяем фильтрацию после удаления
+        selectedEvent = null;
+        filterEvents();
       });
     } else {
       throw Exception('Failed to delete event');
     }
   }
 
-  // Функция для редактирования события
   Future<void> editEvent(Map<String, dynamic> updatedEvent) async {
     final response = await http.put(
       Uri.parse('http://127.0.0.1:8000/api/events/${updatedEvent['id']}/'),
@@ -60,15 +57,14 @@ class _EventsScreenState extends State<EventsScreen> {
         if (index != -1) {
           events[index] = updatedEvent;
         }
-        selectedEvent = updatedEvent;  // Обновляем выбранное событие
-        filterEvents(); // Применяем фильтрацию после редактирования
+        selectedEvent = updatedEvent;
+        filterEvents();
       });
     } else {
       throw Exception('Failed to edit event');
     }
   }
 
-  // Фильтрация событий по выбранной валюте и типу события
   void filterEvents() {
     setState(() {
       filteredEvents = events.where((event) {
@@ -79,7 +75,6 @@ class _EventsScreenState extends State<EventsScreen> {
     });
   }
 
-  // Функция для получения валют
   Future<void> _fetchCurrencies() async {
     final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/currencies/'));
 
@@ -98,22 +93,19 @@ class _EventsScreenState extends State<EventsScreen> {
     }
   }
 
-  // Функция для сортировки по валюте
   void sortByCurrency() {
     setState(() {
       events.sort((a, b) => a['currency'].compareTo(b['currency']));
-      filterEvents();  // Применяем фильтрацию после сортировки
+      filterEvents();
     });
   }
 
-  // Функция для сортировки по типу события
   void sortByEventType() {
     setState(() {
       events.sort((a, b) => a['event_type'].compareTo(b['event_type']));
-      filterEvents();  // Применяем фильтрацию после сортировки
+      filterEvents();
     });
   }
-
   @override
   void initState() {
     super.initState();
@@ -125,7 +117,6 @@ class _EventsScreenState extends State<EventsScreen> {
     });
     _fetchCurrencies();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -181,6 +172,7 @@ class _EventsScreenState extends State<EventsScreen> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
+                showCheckboxColumn: false,
                 columns: [
                   DataColumn(label: Text('Date')),
                   DataColumn(label: Text('User')),
@@ -219,7 +211,9 @@ class _EventsScreenState extends State<EventsScreen> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           // Кнопка редактирования
+        if (selectedEvent != null)
           FloatingActionButton(
+            heroTag: 'editButton',
             onPressed: selectedEvent == null
                 ? null
                 : () {
@@ -242,7 +236,9 @@ class _EventsScreenState extends State<EventsScreen> {
           ),
           SizedBox(height: 10),
           // Кнопка удаления
+        if (selectedEvent != null)
           FloatingActionButton(
+            heroTag: 'deleteButton',
             onPressed: selectedEvent == null
                 ? null
                 : () {
@@ -335,7 +331,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF0F1624), Color(0xFF6C63FF)],
+            colors: [Color.fromARGB(255, 51, 80, 139), Color.fromARGB(209, 11, 9, 49)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -352,31 +348,41 @@ class _EditEventScreenState extends State<EditEventScreen> {
                   GestureDetector(
                     onTap: () => toggleEventType('SELL'),
                     child: Container(
-                      width: 50,
-                      height: 50,
+                      width: 60,
+                      height: 60,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        border: Border.all(
+                          width: 2,
+                          color: eventType == 'SELL'
+                              ? Colors.orangeAccent
+                              : Colors.white.withOpacity(0.5),
+                        ),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
                         Icons.arrow_upward,
-                        color: eventType == 'SELL' ? Colors.blueAccent : Colors.white,
+                        color: eventType == 'SELL' ? Colors.orangeAccent : Colors.white,
                       ),
                     ),
                   ),
-                  SizedBox(width: 10),
+                  SizedBox(width: 20),
                   GestureDetector(
                     onTap: () => toggleEventType('BUY'),
                     child: Container(
-                      width: 50,
-                      height: 50,
+                      width: 60,
+                      height: 60,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        border: Border.all(
+                          width: 2,
+                          color: eventType == 'BUY'
+                              ? Colors.greenAccent
+                              : Colors.white.withOpacity(0.5),
+                        ),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
                         Icons.arrow_downward,
-                        color: eventType == 'BUY' ? Colors.green : Colors.white,
+                        color: eventType == 'BUY' ? Colors.greenAccent : Colors.white,
                       ),
                     ),
                   ),
@@ -440,20 +446,23 @@ class _EditEventScreenState extends State<EditEventScreen> {
                 enabled: false,
               ),
               SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Map<String, dynamic> updatedEvent = {
-                    'id': widget.event['id'],
-                    'user': userController.text,
-                    'currency': selectedCurrency,
-                    'quantity': double.parse(quantityController.text),
-                    'exchange_rate': double.parse(exchangeRateController.text),
-                    'total': double.parse(totalController.text),
-                    'event_type': eventType,
-                  };
-                  widget.onSave(updatedEvent);
-                },
-                child: Text('Save Changes'),
+              // Центрируем кнопку сохранения
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Map<String, dynamic> updatedEvent = {
+                      'id': widget.event['id'],
+                      'user': userController.text,
+                      'currency': selectedCurrency,
+                      'quantity': double.parse(quantityController.text),
+                      'exchange_rate': double.parse(exchangeRateController.text),
+                      'total': double.parse(totalController.text),
+                      'event_type': eventType,
+                    };
+                    widget.onSave(updatedEvent);
+                  },
+                  child: Text('Save Changes'),
+                ),
               ),
             ],
           ),
