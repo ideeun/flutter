@@ -4,7 +4,13 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'users_screen.dart';
 import 'events_screen.dart';
-import "kassa_screen.dart"; // Новый экран для отображения ивентов
+import "kassa_screen.dart"; 
+import "api_servic.dart";
+import 'login.dart';
+import 'tema.dart'; 
+import 'package:provider/provider.dart';
+// Импортируйте ThemeProvider
+
 
 class CustomScreen extends StatefulWidget {
   final String userName;
@@ -16,7 +22,8 @@ CustomScreen({required this.userName});
 }
 
 class _CustomScreenState extends State<CustomScreen> {
-  final Color textColor = Colors.white;
+
+    final Color textColor = Colors.white;
 
   // Список валют
   List<Map<String, dynamic>> currencies = [];
@@ -38,23 +45,26 @@ class _CustomScreenState extends State<CustomScreen> {
     _fetchCurrencies(); // Загрузка валют
   }
 
+  // void _toggleTheme() {
+  //   setState(() {
+  //     isDarkMode = !isDarkMode;
+  //   });
+  // }
   Future<void> _fetchCurrencies() async {
-  final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/currencies/'));
-
-  if (response.statusCode == 200) {
-    List<dynamic> data = json.decode(response.body);
-    setState(() {
-      currencies = data.map((currency) {
-        return {
-          'id': currency['id'], // Поле 'id' предполагается в ответе сервера
-          'name': currency['name'], // Поле 'name' для названия валюты
-        };
-      }).toList();
-    });
-  } else {
-    throw Exception('Failed to load currencies');
+    try {
+      final data = await Api.fetchCurrencies();
+      if (mounted) {  // Проверка, если виджет все еще в дереве
+      setState(() { 
+        currencies = data;
+      });
+    } 
+    }
+    catch (e) {
+    if (mounted) {
+      _showErrorDialog('Failed to load currencies: $e');
+    }
+    }
   }
-}
 
 void _showClearConfirmationDialog() {
   showDialog(
@@ -85,14 +95,13 @@ void _showClearConfirmationDialog() {
 
 // Функция для очистки всех ивентов
 Future<void> clearEvents() async {
-  final response = await http.delete(Uri.parse('http://127.0.0.1:8000/api/events/'));
-
-  if (response.statusCode == 200) {
-    _showSuccessDialog('All events cleared!');
-  } else {
-    _showErrorDialog('Failed to clear events. Error: ${response.body}');
+    try {
+      await Api.clearEvents();
+      _showSuccessDialog('All events cleared!');
+    } catch (e) {
+      _showErrorDialog('Failed to clear events: $e');
+    }
   }
-}
 
 
 
@@ -109,52 +118,31 @@ Future<void> clearEvents() async {
 
   // Функция для добавления новой записи
   Future<void> addEntry() async {
-  if (selectedCurrencyName == null) {  // Проверяем, что название валюты выбрано
-    _showErrorDialog('Please select a currency');
-    return;
+    if (selectedCurrencyName == null) {
+      _showErrorDialog('Please select a currency');
+      return;
+    }
+
+    final event = {
+      'user': widget.userName,
+      'currency': selectedCurrencyName,
+      'quantity': double.tryParse(quantityController.text),
+      'exchange_rate': double.tryParse(exchangeRateController.text),
+      'total': double.tryParse(totalController.text),
+      'event_type': isSaleActive ? 'SELL' : 'BUY',
+    };
+
+    try {
+      await Api.addEvent(event);
+      _showSuccessDialog('Event added successfully!');
+      quantityController.clear();
+      exchangeRateController.clear();
+      totalController.text = '0';
+    } catch (e) {
+      _showErrorDialog('Failed to add event: $e');
+    }
   }
 
-  final user = widget.userName;
-  final quantity = double.tryParse(quantityController.text);
-  final exchangeRate = double.tryParse(exchangeRateController.text);
-  final total = double.tryParse(totalController.text);
-
-  if (quantity == null || exchangeRate == null || total == null) {
-    _showErrorDialog('Please enter valid numbers for quantity, exchange rate, and total.');
-    return;
-  }
-
-  if (!isSaleActive && !isBuyActive) {
-    _showErrorDialog('Please select whether it is a sale or a purchase.');
-    return;
-  }
-
-  final url = 'http://127.0.0.1:8000/api/events/';
-
-  final response = await http.post(
-    Uri.parse(url),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: json.encode({
-      'user': user,
-      'currency': selectedCurrencyName,  // Передаем название валюты
-      'quantity': quantity,
-      'exchange_rate': exchangeRate,
-      'total': total,
-      'event_type': isSaleActive ? 'SELL' : isBuyActive ? 'BUY' : 'UNKNOWN',
-    }),
-  );
-
-  if (response.statusCode == 201) {
-    _showSuccessDialog('Event added successfully!');
-    quantityController.clear();
-    exchangeRateController.clear();
-    totalController.text = '0';
-  } else {
-    _showErrorDialog('Failed to add event. Error: ${response.body}');
-  }
-}
 
 
   void _showErrorDialog(String message) {
@@ -212,97 +200,161 @@ Future<void> clearEvents() async {
     });
   }
 
+  void _logOut() {
+  // Очистить любые данные о пользователе, если необходимо
+  // Например, вы можете удалить информацию о текущем пользователе из SharedPreferences или других местах хранения данных
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => LoginScreen()), // Перенаправление на экран логина
+  );
+}
+
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+Widget build(BuildContext context) {
+  final themeProvider = Provider.of<ThemeProvider>(context);
+  final isDarkMode = themeProvider.isDarkMode;
+
+  return MaterialApp(
+    theme: isDarkMode ? ThemeData.dark() : ThemeData.light(),
+    home: Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 6, 16, 38),
-        title: Text('HOME', style: TextStyle(color: textColor)),
+        backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : const Color.fromARGB(255, 237, 232, 232),
+        title: Text(
+          'HOME',
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black,
+          ),
+        ),
         leading: Builder(
           builder: (BuildContext context) {
             return IconButton(
-              icon: Icon(Icons.menu, color: textColor),
+              icon: Icon(Icons.menu, color: isDarkMode ? Colors.white : Colors.black),
               onPressed: () {
                 Scaffold.of(context).openDrawer();
               },
             );
           },
         ),
+        actions: [
+          IconButton(
+            icon: Icon(isDarkMode ? Icons.wb_sunny : Icons.brightness_3,
+            color: isDarkMode ? Colors.white : Colors.black),
+            onPressed: () {
+              themeProvider.toggleTheme();  // Используем ThemeProvider для переключения темы
+            },
+          ),
+        ],
       ),
       drawer: Drawer(
-        backgroundColor: Color.fromARGB(255, 15, 22, 36),
-        child: ListView(
+        backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : Colors.white,
+        child: Column(
           children: <Widget>[
-            DrawerHeader(
-              decoration: BoxDecoration(color: Colors.transparent),
-              child: Text(
-                'Menu',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
+            // Верхняя часть с названием и кнопкой выхода
+            Container(
+              padding: EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  topRight: Radius.circular(10),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 60),
+                  Text(
+                    'Menu',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  SizedBox(height: 30),
+                  ListTile(
+                    leading: Icon(Icons.logout, color: isDarkMode ? Colors.white : Colors.black),
+                    title: Text('Log Out', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
+                    onTap: () {
+                      Navigator.pop(context); // Закрыть меню
+                      _logOut();  // Вызвать функцию выхода
+                    },
+                  ),
+                ],
               ),
             ),
-            ListTile(
-              leading: Icon(Icons.event, color: textColor),
-              title: Text('Events', style: TextStyle(color: textColor)),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => EventsScreen()), // Новый экран для ивентов
-                );
-              },
+            Divider(color: isDarkMode ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3)),
+            Expanded(
+              child: ListView(
+                children: <Widget>[
+                  ListTile(
+                    leading: Icon(Icons.event, color: isDarkMode ? Colors.white : Colors.black),
+                    title: Text('Events', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => EventsScreen()),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.currency_exchange, color: isDarkMode ? Colors.white : Colors.black),
+                    title: Text('Currencies', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => CurrencyTableScreen()),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.person, color: isDarkMode ? Colors.white : Colors.black),
+                    title: Text('Users', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => UsersScreen()),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.document_scanner_rounded, color: isDarkMode ? Colors.white : Colors.black),
+                    title: Text('Reports', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.wallet, color: isDarkMode ? Colors.white : Colors.black),
+                    title: Text('Kassa', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => CashScreen()),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.delete_forever, color: isDarkMode ? Colors.white : Colors.black),
+                    title: Text('Clear', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showClearConfirmationDialog();
+                    },
+                  ),
+                ],
+              ),
             ),
-            ListTile(
-              leading: Icon(Icons.currency_exchange, color: textColor),
-              title: Text('Currencies', style: TextStyle(color: textColor)),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => CurrencyTableScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.person, color: textColor),
-              title: Text('Users', style: TextStyle(color: textColor)),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => UsersScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.document_scanner_rounded, color: textColor),
-              title: Text('Reports', style: TextStyle(color: textColor)),
-              onTap: () {
-              Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.wallet, color: textColor),
-              title: Text('Kassa', style: TextStyle(color: textColor)),
-              onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => CashScreen()),
-                );
-              },
-            ),
-            ListTile(
-  leading: Icon(Icons.delete_forever, color: textColor),
-  title: Text('Clear', style: TextStyle(color: textColor)),
-  onTap: () {
-    Navigator.pop(context);
-    _showClearConfirmationDialog();
-  },
-),
-            
           ],
         ),
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color.fromARGB(255, 134, 140, 138), Color.fromARGB(255, 10, 71, 42)],
+            colors: isDarkMode 
+              ? [Color.fromARGB(255, 4, 5, 33), Color.fromARGB(255, 15, 17, 62), Color.fromARGB(255, 64, 77, 213)]
+              : [Color.fromARGB(255, 41, 47, 120), Color.fromARGB(255, 74, 77, 121), Color.fromARGB(255, 188, 190, 207)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -311,117 +363,114 @@ Future<void> clearEvents() async {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-  mainAxisAlignment: MainAxisAlignment.center,
-  children: [
-    GestureDetector(
-      onTap: toggleSale,
-      child: Transform.translate(
-        offset: isSaleActive ? Offset(0, -5) : Offset.zero, // Смещение при выборе
-        child: Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isSaleActive
-                  ? [const Color.fromARGB(255, 51, 5, 235), const Color.fromARGB(255, 20, 162, 233)]
-                  : [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.1)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-            borderRadius: BorderRadius.circular(10), // Округленная линия
-            boxShadow: isSaleActive
-                ? [BoxShadow(color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)]
-                : [],
-          ),
-          child: Icon(
-            Icons.arrow_upward,
-            color: isSaleActive ? const Color.fromARGB(255, 251, 251, 251) : textColor,
-          ),
-        ),
-      ),
-    ),
-    SizedBox(width: 10),
-    GestureDetector(
-      onTap: toggleBuy,
-      child: Transform.translate(
-        offset: isBuyActive ? Offset(0, -5) : Offset.zero, // Смещение при выборе
-        child: Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isBuyActive
-                  ? [const Color.fromARGB(255, 30, 194, 231), const Color.fromARGB(255, 124, 75, 224)]
-                  : [const Color.fromARGB(255, 197, 192, 205).withOpacity(0.1), Colors.white.withOpacity(0.1)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-            borderRadius: BorderRadius.circular(10), // Округленная линия
-            boxShadow: isBuyActive
-                ? [BoxShadow(color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)]
-                : [],
-          ),
-          child: Icon(
-            Icons.arrow_downward,
-            color: isBuyActive ? const Color.fromARGB(255, 238, 242, 239) : textColor,
-          ),
-        ),
-      ),
-    ),
-  ],
-),
-
+            children: [Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: toggleSale,
+                    child: Transform.translate(
+                      offset: isSaleActive ? Offset(0, -5) : Offset.zero, // Смещение при выборе
+                      child: Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: isSaleActive
+                                ? [const Color.fromARGB(255, 51, 5, 235), const Color.fromARGB(255, 20, 162, 233)]
+                                : [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.1)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          borderRadius: BorderRadius.circular(10), // Округленная линия
+                          boxShadow: isSaleActive
+                              ? [BoxShadow(color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)]
+                              : [],
+                        ),
+                        child: Icon(
+                          Icons.arrow_upward,
+                          color: isSaleActive ? const Color.fromARGB(255, 251, 251, 251) : textColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: toggleBuy,
+                    child: Transform.translate(
+                      offset: isBuyActive ? Offset(0, -5) : Offset.zero, // Смещение при выборе
+                      child: Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: isBuyActive
+                                ? [const Color.fromARGB(255, 82, 14, 228), const Color.fromARGB(255, 80, 191, 224)]
+                                : [const Color.fromARGB(255, 197, 192, 205).withOpacity(0.1), Colors.white.withOpacity(0.1)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          borderRadius: BorderRadius.circular(10), // Округленная линия
+                          boxShadow: isBuyActive
+                              ? [BoxShadow(color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)]
+                              : [],
+                        ),
+                        child: Icon(
+                          Icons.arrow_downward,
+                          color: isBuyActive ? const Color.fromARGB(255, 238, 242, 239) : textColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               SizedBox(height: 20),
               InputDecorator(
-  decoration: InputDecoration(
-    filled: true,
-    fillColor: Colors.white.withOpacity(0.1),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(20),
-      borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
-    ),
-    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Уменьшаем отступы
-    isDense: true, // Уменьшаем высоту
-  ),
-  child: DropdownButton<int>(
-    value: selectedCurrencyId,
-    onChanged: (int? newValue) {
-      setState(() {
-        selectedCurrencyId = newValue;
-        selectedCurrencyName = currencies.firstWhere((currency) => currency['id'] == newValue)['name'];
-      });
-    },
-    items: currencies.map<DropdownMenuItem<int>>((currency) {
-      return DropdownMenuItem<int>(
-        value: currency['id'],
-        child: Text(
-          currency['name'],
-          style: TextStyle(
-            color: textColor,
-            fontSize: 14, // Уменьшаем шрифт
-          ),
-        ),
-      );
-    }).toList(),
-    dropdownColor: Color(0xFF0F1624),
-    style: TextStyle(
-      color: textColor,
-      fontSize: 14, // Уменьшаем шрифт
-    ),
-    hint: Text(
-      'Select Currency',
-      style: TextStyle(
-        color: textColor.withOpacity(0.6),
-        fontSize: 14, // Уменьшаем шрифт
-      ),
-    ),
-    isExpanded: true,
-    underline: Container(), // Убираем подчеркивание
-  ),
-),
-
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Уменьшаем отступы
+                  isDense: true, // Уменьшаем высоту
+                ),
+                child: DropdownButton<int>(
+                  value: selectedCurrencyId,
+                  onChanged: (int? newValue) {
+                    setState(() {
+                      selectedCurrencyId = newValue;
+                      selectedCurrencyName = currencies.firstWhere((currency) => currency['id'] == newValue)['name'];
+                    });
+                  },
+                  items: currencies.map<DropdownMenuItem<int>>((currency) {
+                    return DropdownMenuItem<int>(
+                      value: currency['id'],
+                      child: Text(
+                        currency['name'],
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 16, // Уменьшаем шрифт
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  dropdownColor:isDarkMode ?Color(0xFF0F1624) : Color.fromARGB(255, 238, 242, 239),
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 14, // Уменьшаем шрифт
+                  ),
+                  hint: Text(
+                    'Select Currency',
+                    style: TextStyle(
+                      color: textColor.withOpacity(0.6),
+                      fontSize: 14, // Уменьшаем шрифт
+                    ),
+                  ),
+                  isExpanded: true,
+                  underline: Container(), // Убираем подчеркивание
+                ),
+              ),
               SizedBox(height: 20),
               TextField(
                 controller: quantityController,
@@ -469,7 +518,7 @@ Future<void> clearEvents() async {
                   filled: true,
                   fillColor: Colors.white.withOpacity(0.1),
                   hintText: 'Total',
-                  hintStyle: TextStyle(color: textColor.withOpacity(0.6)),
+                  hintStyle: TextStyle(color: textColor.withOpacity(1)),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20),
                     borderSide: BorderSide.none,
@@ -481,19 +530,23 @@ Future<void> clearEvents() async {
                 child: ElevatedButton(
                   onPressed: addEntry,
                   style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                  shape: RoundedRectangleBorder(
+                    backgroundColor: const Color.fromARGB(255, 106, 114, 249),
+                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
                   child: Text('Submit'),
                 ),
               ),
+              // Здесь ваша остальная разметка
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
+
+}
+

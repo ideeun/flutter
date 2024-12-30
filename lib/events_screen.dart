@@ -1,7 +1,12 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'api_servic.dart';
+import 'tema.dart'; 
+import 'package:provider/provider.dart';
 
 class EventsScreen extends StatefulWidget {
   @override
@@ -17,54 +22,66 @@ class _EventsScreenState extends State<EventsScreen> {
   String? selectedCurrency;
   String eventTypeFilter = 'All';
 
-  Future<List<Map<String, dynamic>>> fetchEvents() async {
-    final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/events/'));
-
-    if (response.statusCode == 200) {
-      List data = json.decode(response.body);
-      return data.map((event) => event as Map<String, dynamic>).toList();
-    } else {
-      throw Exception('Failed to load events');
-    }
-  }
-
-  Future<void> deleteEvent(int eventId) async {
-    final response = await http.delete(Uri.parse('http://127.0.0.1:8000/api/events/$eventId/'));
-
-    if (response.statusCode == 204) {
+  Future<void> _fetchEvents() async {
+    try {
+      final eventList = await Api.fetchEvents();
       setState(() {
-        events.removeWhere((event) => event['id'] == eventId);
-        selectedEvent = null;
-        filterEvents();
+        events = eventList;
+        filteredEvents = eventList;
       });
-    } else {
-      throw Exception('Failed to delete event');
+    } catch (e) {
+      print('Error fetching events: $e');
     }
   }
 
-  Future<void> editEvent(Map<String, dynamic> updatedEvent) async {
-    final response = await http.put(
-      Uri.parse('http://127.0.0.1:8000/api/events/${updatedEvent['id']}/'),
-      headers: <String, String>{
-        'Content-Type': 'application/json',
-      },
-      body: json.encode(updatedEvent),
-    );
+  Future<void> _deleteEvent(int eventId) async {
+  try {
+    await Api.deleteEvent(eventId);  // Просто вызываем функцию
+    setState(() {
+      events.removeWhere((event) => event['id'] == eventId);
+      selectedEvent = null;
+      filterEvents();
+    });
+  } catch (e) {
+    print('Error deleting event: $e');
+  }
+}
 
-    if (response.statusCode == 200) {
+
+  Future<void> _editEvent(Map<String, dynamic> updatedEvent) async {
+  try {
+    // Сохраняем старое значение даты (created_at), чтобы не менять её при редактировании
+    updatedEvent['created_at'] = selectedEvent!['created_at'];
+
+    // Отправляем обновленные данные (без изменений в created_at)
+    await Api.editEvent(updatedEvent);
+
+    setState(() {
+      // Находим индекс события, которое нужно обновить
+      int index = events.indexWhere((event) => event['id'] == updatedEvent['id']);
+      if (index != -1) {
+        // Обновляем событие в списке
+        events[index] = updatedEvent;
+      }
+      selectedEvent = updatedEvent;
+      filterEvents();
+    });
+  } catch (e) {
+    print('Error editing event: $e');
+  }
+}
+
+
+  Future<void> _fetchCurrencies() async {
+    try {
+      final currencyList = await Api.fetchCurrencies();
       setState(() {
-        int index = events.indexWhere((event) => event['id'] == updatedEvent['id']);
-        if (index != -1) {
-          events[index] = updatedEvent;
-        }
-        selectedEvent = updatedEvent;
-        filterEvents();
+        currencies = currencyList;
       });
-    } else {
-      throw Exception('Failed to edit event');
+    } catch (e) {
+      print('Error fetching currencies: $e');
     }
   }
-
   void filterEvents() {
     setState(() {
       filteredEvents = events.where((event) {
@@ -75,23 +92,6 @@ class _EventsScreenState extends State<EventsScreen> {
     });
   }
 
-  Future<void> _fetchCurrencies() async {
-    final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/currencies/'));
-
-    if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
-      setState(() {
-        currencies = data.map((currency) {
-          return {
-            'id': currency['id'],
-            'name': currency['name'],
-          };
-        }).toList();
-      });
-    } else {
-      throw Exception('Failed to load currencies');
-    }
-  }
 
   void sortByCurrency() {
     setState(() {
@@ -109,108 +109,119 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   void initState() {
     super.initState();
-    fetchEvents().then((eventList) {
-      setState(() {
-        events = eventList;
-        filteredEvents = eventList;
-      });
-    });
+    _fetchEvents();
     _fetchCurrencies();
   }
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Events Table'),
+Widget build(BuildContext context) {
+  final themeProvider = Provider.of<ThemeProvider>(context);
+  final isDarkMode = themeProvider.isDarkMode;  // Проверка на темную тему
+
+  return Scaffold(
+    backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : Colors.white, // Фон для Scaffold
+    appBar: AppBar(
+      backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : const Color.fromARGB(255, 255, 255, 255),  // Фон AppBar
+      title: Text(
+        'Events Table',
+        style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),  // Цвет текста в AppBar
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Фильтры
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Фильтр по валюте
-                DropdownButton<String>(
-  value: selectedCurrency,
-  hint: Text('Select Currency'),
-  onChanged: (newValue) {
-    setState(() {
-      selectedCurrency = newValue;
-      filterEvents();
-    });
-  },
-  items: ['All', ...currencies.map((currency) {
-    return currency['name'];
-  })].map((currency) {
-    return DropdownMenuItem<String>(
-      value: currency,
-      child: Text(currency),
-    );
-  }).toList(),
-),
-                SizedBox(width: 20),
-                // Фильтр по типу события
-                DropdownButton<String>(
-                  value: eventTypeFilter,
-                  onChanged: (newValue) {
-                    setState(() {
-                      eventTypeFilter = newValue!;
-                      filterEvents();
-                    });
-                  },
-                  items: ['All', 'SELL', 'BUY'].map((type) {
-                    return DropdownMenuItem<String>(
-                      value: type,
-                      child: Text(type),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-            // Таблица событий
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                showCheckboxColumn: false,
-                columns: [
-                  DataColumn(label: Text('Date')),
-                  DataColumn(label: Text('User')),
-                  DataColumn(label: Text('Currency')),
-                  DataColumn(label: Text('Quantity')),
-                  DataColumn(label: Text('Exchange Rate')),
-                  DataColumn(label: Text('Total')),
-                  DataColumn(label: Text('Event Type')),
-                ],
-                rows: filteredEvents.map((event) {
-                  bool isSelected = selectedEvent != null && selectedEvent!['id'] == event['id'];
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(event['created_at'])))),
-                      DataCell(Text(event['user'].toString())),
-                      DataCell(Text(event['currency'].toString())),
-                      DataCell(Text(event['quantity'].toString())),
-                      DataCell(Text(event['exchange_rate'].toString())),
-                      DataCell(Text(event['total'].toString())),
-                      DataCell(Text(event['event_type'])),
-                    ],
-                    selected: isSelected,
-                    onSelectChanged: (selected) {
-                      setState(() {
-                        selectedEvent = isSelected ? null : event;
-                      });
-                    },
+      iconTheme: IconThemeData(color: isDarkMode ? Colors.white : Colors.black),  // Цвет иконок в AppBar
+    ),
+    body: SingleChildScrollView(
+      child: Column(
+        children: [
+          // Фильтры
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Фильтр по валюте
+              DropdownButton<String>(
+                value: selectedCurrency ?? 'All', // Provide a default value like 'All' if null
+                hint: Text('Select Currency', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
+                onChanged: (newValue) {
+                  setState(() {
+                    selectedCurrency = newValue;
+                    filterEvents();
+                  });
+                },
+                items: ['All', ...currencies.map((currency) {
+                  return currency['name'];
+                })].map((currency) {
+                  return DropdownMenuItem<String>(
+                    value: currency,
+                    child: Text(currency, style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
                   );
                 }).toList(),
               ),
+              SizedBox(width: 20),
+              // Фильтр по типу события
+              DropdownButton<String>(
+                value: eventTypeFilter,
+                onChanged: (newValue) {
+                  setState(() {
+                    eventTypeFilter = newValue!;
+                    filterEvents();
+                  });
+                },
+                items: ['All', 'SELL', 'BUY'].map((type) {
+                  return DropdownMenuItem<String>(
+                    value: type,
+                    child: Text(type, style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+          // Таблица событий
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              showCheckboxColumn: false,
+              columns: [
+                DataColumn(label: Text('Date', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                DataColumn(label: Text('User', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                DataColumn(label: Text('Currency', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                DataColumn(label: Text('Quantity', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                DataColumn(label: Text('Exchange Rate', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                DataColumn(label: Text('Total', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                DataColumn(label: Text('Event Type', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+              ],
+              rows: filteredEvents.map((event) {
+                bool isSelected = selectedEvent != null && selectedEvent!['id'] == event['id'];
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      Text(
+                        event['created_at'] != null && event['created_at'].isNotEmpty
+                            ? DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(event['created_at']))
+                            : 'Invalid Date',
+                        style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+                      ),
+                    ),                     
+                    DataCell(Text(event['user'].toString(), style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                    DataCell(Text(event['currency'].toString(), style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                    DataCell(Text(event['quantity'].toString(), style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                    DataCell(Text(event['exchange_rate'].toString(), style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                    DataCell(Text(event['total'].toString(), style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                    DataCell(Text(event['event_type'], style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                  ],
+                  selected: isSelected,
+                  onSelectChanged: (selected) {
+                    setState(() {
+                      selectedEvent = isSelected ? null : event;
+                    });
+                  },
+                );
+              }).toList(),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          // Кнопка редактирования
+    ),
+    floatingActionButton: Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        // Кнопка редактирования
         if (selectedEvent != null)
           FloatingActionButton(
             heroTag: 'editButton',
@@ -223,7 +234,7 @@ class _EventsScreenState extends State<EventsScreen> {
                         builder: (context) => EditEventScreen(
                           event: selectedEvent!,
                           onSave: (updatedEvent) {
-                            editEvent(updatedEvent);
+                            _editEvent(updatedEvent);
                             Navigator.pop(context);
                           },
                         ),
@@ -234,24 +245,25 @@ class _EventsScreenState extends State<EventsScreen> {
             tooltip: 'Edit Event',
             backgroundColor: Colors.blue,
           ),
-          SizedBox(height: 10),
-          // Кнопка удаления
+        SizedBox(height: 10),
+        // Кнопка удаления
         if (selectedEvent != null)
           FloatingActionButton(
             heroTag: 'deleteButton',
             onPressed: selectedEvent == null
                 ? null
                 : () {
-                    deleteEvent(selectedEvent!['id']);
+                    _deleteEvent(selectedEvent!['id']);
                   },
             child: Icon(Icons.delete),
             tooltip: 'Delete Event',
             backgroundColor: Colors.red,
           ),
-        ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
+
 }
 
 
@@ -282,20 +294,13 @@ class _EditEventScreenState extends State<EditEventScreen> {
   late String eventType;
 
   Future<void> _fetchCurrencies() async {
-    final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/currencies/'));
-
-    if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
+    try {
+      final currencyList = await Api.fetchCurrencies();
       setState(() {
-        currencies = data.map((currency) {
-          return {
-            'id': currency['id'],
-            'name': currency['name'],
-          };
-        }).toList();
+        currencies = currencyList;
       });
-    } else {
-      throw Exception('Failed to load currencies');
+    } catch (e) {
+      print('Error fetching currencies: $e');
     }
   }
 
@@ -306,7 +311,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
     exchangeRateController = TextEditingController(text: widget.event['exchange_rate'].toString());
     totalController = TextEditingController(text: widget.event['total'].toString());
     userController = TextEditingController(text: widget.event['user'] ?? '');
-    selectedCurrency = widget.event['currency'];
+    selectedCurrency = widget.event['currency'] ?? 'default_currency';
     eventType = widget.event['event_type'] ?? 'SELL';
     _fetchCurrencies();
   }
@@ -325,149 +330,200 @@ class _EditEventScreenState extends State<EditEventScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Edit Event')),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color.fromARGB(255, 51, 80, 139), Color.fromARGB(209, 11, 9, 49)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Строка с кнопками для переключения типа события
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () => toggleEventType('SELL'),
-                    child: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          width: 2,
-                          color: eventType == 'SELL'
-                              ? Colors.orangeAccent
-                              : Colors.white.withOpacity(0.5),
-                        ),
-                        borderRadius: BorderRadius.circular(10),
+Widget build(BuildContext context) {
+  final themeProvider = Provider.of<ThemeProvider>(context);
+  final isDarkMode = themeProvider.isDarkMode;  // Проверка на темную тему
+
+  return Scaffold(
+    backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : Colors.white, // Фон для Scaffold
+    appBar: AppBar(
+      title: Text(
+        'Edit Event',
+        style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),  // Цвет текста в AppBar
+      ),
+      backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : const Color.fromARGB(255, 255, 255, 255), // Фон AppBar
+      iconTheme: IconThemeData(color: isDarkMode ? Colors.white : Colors.black),  // Цвет иконок в AppBar
+    ),
+    body: Container(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Строка с кнопками для переключения типа события
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: () => toggleEventType('SELL'),
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        width: 2,
+                        color: eventType == 'SELL'
+                            ? const Color.fromARGB(255, 173, 125, 241)
+                            : const Color.fromARGB(255, 132, 130, 130).withOpacity(0.5),
                       ),
-                      child: Icon(
-                        Icons.arrow_upward,
-                        color: eventType == 'SELL' ? Colors.orangeAccent : Colors.white,
-                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.arrow_upward,
+                      color: eventType == 'SELL' ? const Color.fromARGB(255, 173, 125, 241) : const Color.fromARGB(255, 170, 169, 169),
                     ),
                   ),
-                  SizedBox(width: 20),
-                  GestureDetector(
-                    onTap: () => toggleEventType('BUY'),
-                    child: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          width: 2,
-                          color: eventType == 'BUY'
-                              ? Colors.greenAccent
-                              : Colors.white.withOpacity(0.5),
-                        ),
-                        borderRadius: BorderRadius.circular(10),
+                ),
+                SizedBox(width: 20),
+                GestureDetector(
+                  onTap: () => toggleEventType('BUY'),
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        width: 2,
+                        color: eventType == 'BUY'
+                            ? const Color.fromARGB(255, 173, 125, 241)
+                            : const Color.fromARGB(255, 142, 141, 141).withOpacity(0.5),
                       ),
-                      child: Icon(
-                        Icons.arrow_downward,
-                        color: eventType == 'BUY' ? Colors.greenAccent : Colors.white,
-                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.arrow_downward,
+                      color: eventType == 'BUY' ? const Color.fromARGB(255, 173, 125, 241) : const Color.fromARGB(255, 175, 173, 173),
                     ),
                   ),
-                ],
-              ),
-              SizedBox(height: 16),
-              // Поле для выбора валюты
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey, width: 1),
-                  borderRadius: BorderRadius.circular(8.0),
                 ),
-                child: DropdownButton<String>(
-                  value: selectedCurrency,
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedCurrency = newValue;
-                    });
-                  },
-                  isExpanded: true,
-                  hint: Text('Select a currency', style: TextStyle(fontSize: 14)),
-                  items: currencies.map((currency) {
-                    return DropdownMenuItem<String>(
-                      value: currency['name'],
-                      child: Text(currency['name'], style: TextStyle(fontSize: 14)),
-                    );
-                  }).toList(),
-                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            // Поле для выбора валюты
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.0),
+              decoration: BoxDecoration(
+                border: Border.all(color: isDarkMode ? Colors.white : Colors.black, width: 1), // Цвет рамки
+                borderRadius: BorderRadius.circular(8.0),
               ),
-              SizedBox(height: 16),
-              // Поле для ввода пользователя
-              TextField(
-                controller: userController,
-                decoration: InputDecoration(labelText: 'User'),
-                enabled: false,
-              ),
-              // Поле для ввода количества
-              TextField(
-                controller: quantityController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Quantity'),
-                onChanged: (value) {
-                  _updateTotal();
+              child: DropdownButton<String>(
+                value: selectedCurrency,
+                onChanged: (newValue) {
+                  setState(() {
+                    selectedCurrency = newValue;
+                  });
                 },
+                isExpanded: true,
+                hint: Text('Select a currency', style: TextStyle(fontSize: 14, color: isDarkMode ? Colors.white : Colors.black)),
+                items: currencies.map((currency) {
+                  return DropdownMenuItem<String>(
+                    value: currency['name'],
+                    child: Text(currency['name'], style: TextStyle(fontSize: 14, color: isDarkMode ? Colors.white : Colors.black)),
+                  );
+                }).toList(),
               ),
-              // Поле для ввода курса обмена
-              TextField(
-                controller: exchangeRateController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Exchange Rate'),
-                onChanged: (value) {
-                  _updateTotal();
-                },
-              ),
-              // Поле для автоматического расчета Total
-              TextField(
-                controller: totalController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Total'),
-                enabled: false,
-              ),
-              SizedBox(height: 20),
-              // Центрируем кнопку сохранения
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Map<String, dynamic> updatedEvent = {
-                      'id': widget.event['id'],
-                      'user': userController.text,
-                      'currency': selectedCurrency,
-                      'quantity': double.parse(quantityController.text),
-                      'exchange_rate': double.parse(exchangeRateController.text),
-                      'total': double.parse(totalController.text),
-                      'event_type': eventType,
-                    };
-                    widget.onSave(updatedEvent);
-                  },
-                  child: Text('Save Changes'),
+            ),
+            SizedBox(height: 16),
+            // Поле для ввода пользователя
+            TextField(
+              controller: userController,
+              decoration: InputDecoration(
+                labelText: 'User',
+                labelStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста метки
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: isDarkMode ? Colors.white : const Color.fromARGB(255, 0, 0, 0)), // Цвет рамки
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: isDarkMode ? Colors.purple : Colors.blue), // Цвет рамки при фокусе
                 ),
               ),
-            ],
-          ),
+              enabled: false,
+              style: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста
+            ),
+            // Поле для ввода количества
+            SizedBox(height: 10),
+            TextField(
+              controller: quantityController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Quantity',
+                labelStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста метки
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: isDarkMode ? Colors.white : Colors.black), // Цвет рамки
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: const Color.fromARGB(255, 167, 142, 255)), // Цвет рамки при фокусе
+                ),
+              ),
+              onChanged: (value) {
+                _updateTotal();
+              },
+              style: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста
+            ),
+            // Поле для ввода курса обмена
+            SizedBox(height: 16),
+            TextField(
+              controller: exchangeRateController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Exchange Rate',
+                labelStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста метки
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: isDarkMode ? Colors.white : Colors.black), // Цвет рамки
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: const Color.fromARGB(255, 167, 142, 255)), // Цвет рамки при фокусе
+                ),
+              ),
+              onChanged: (value) {
+                _updateTotal();
+              },
+              style: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста
+            ),
+            // Поле для автоматического расчета Total
+            TextField(
+              controller: totalController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Total',
+                labelStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста метки
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: isDarkMode ? Colors.white : Colors.black), // Цвет рамки
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: isDarkMode ? Colors.purple : Colors.blue), // Цвет рамки при фокусе
+                ),
+              ),
+              enabled: false,
+              style: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста
+            ),
+            SizedBox(height: 20),
+            // Центрируем кнопку сохранения
+            Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  Map<String, dynamic> updatedEvent = {
+                    'id': widget.event['id'],
+                    'user': userController.text,
+                    'currency': selectedCurrency,
+                    'quantity': double.parse(quantityController.text),
+                    'exchange_rate': double.parse(exchangeRateController.text),
+                    'total': double.parse(totalController.text),
+                    'event_type': eventType,
+                  };
+                  widget.onSave(updatedEvent);
+                },
+                child: Text('Save Changes'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDarkMode ? Colors.purple : const Color.fromARGB(255, 233, 233, 233), // Цвет кнопки
+                  foregroundColor: const Color.fromARGB(255, 141, 117, 229)  // Цвет текста на кнопке
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 }

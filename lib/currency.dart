@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'api_servic.dart'; // Импортируем CurrencyApi
 import 'dart:convert';
+import 'tema.dart'; 
+import 'package:provider/provider.dart';
 
 class CurrencyTableScreen extends StatefulWidget {
   @override
@@ -18,72 +20,46 @@ class _CurrencyTableScreenState extends State<CurrencyTableScreen> {
     _fetchCurrencies();
   }
 
+  // Используем функцию из CurrencyApi
   Future<void> _fetchCurrencies() async {
     try {
-      final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/currencies/'));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          currencies = data.map((currency) => {
-            'id': currency['id'],
-            'name': currency['name'],
-          }).toList();
-        });
-      } else {
-        _showSnackbar('Failed to load currencies: ${response.statusCode}');
-      }
+      final currenciesData = await Api.fetchCurrencies();
+      setState(() {
+        currencies = currenciesData;
+      });
     } catch (e) {
       _showSnackbar('Error: $e');
     }
   }
 
+  // Используем функцию из CurrencyApi
   Future<void> _addCurrency(String name) async {
     try {
-      final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/api/currencies/'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'name': name}),
-      );
-      if (response.statusCode == 201) {
-        _fetchCurrencies();
-        _showSnackbar('Currency added successfully!');
-      } else {
-        _showSnackbar('Failed to add currency: ${response.statusCode}');
-      }
+      await Api.addCurrency(name);
+      _fetchCurrencies(); // Обновляем список валют после добавления
+      _showSnackbar('Currency added successfully!');
     } catch (e) {
       _showSnackbar('Error: $e');
     }
   }
 
+  // Используем функцию из CurrencyApi
   Future<void> _deleteCurrency(int id) async {
     try {
-      final response = await http.delete(
-        Uri.parse('http://127.0.0.1:8000/api/currencies/$id/'),
-      );
-      if (response.statusCode == 204) {
-        _fetchCurrencies();
-        _showSnackbar('Currency deleted successfully!');
-      } else {
-        _showSnackbar('Failed to delete currency: ${response.statusCode}');
-      }
+      await Api.deleteCurrency(id);
+      _fetchCurrencies(); // Обновляем список валют после удаления
+      _showSnackbar('Currency deleted successfully!');
     } catch (e) {
       _showSnackbar('Error: $e');
     }
   }
 
+  // Используем функцию из CurrencyApi
   Future<void> _editCurrency(int id, String newName) async {
     try {
-      final response = await http.put(
-        Uri.parse('http://127.0.0.1:8000/api/currencies/$id/'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'name': newName}),
-      );
-      if (response.statusCode == 200) {
-        _fetchCurrencies();
-        _showSnackbar('Currency updated successfully!');
-      } else {
-        _showSnackbar('Failed to update currency: ${response.statusCode}');
-      }
+      await Api.editCurrency(id, newName);
+      _fetchCurrencies(); // Обновляем список валют после изменения
+      _showSnackbar('Currency updated successfully!');
     } catch (e) {
       _showSnackbar('Error: $e');
     }
@@ -132,134 +108,153 @@ class _CurrencyTableScreenState extends State<CurrencyTableScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Currencies'),
-        backgroundColor: Color.fromARGB(255, 6, 16, 38),
+Widget build(BuildContext context) {
+  final themeProvider = Provider.of<ThemeProvider>(context);  // Получаем доступ к теме
+  final isDarkMode = themeProvider.isDarkMode;  // Проверка на темную тему
+
+  return Scaffold(
+    appBar: AppBar(
+      title: Text(
+        'Currencies',
+        style: TextStyle(
+          color: isDarkMode ? Colors.white : Colors.black,  // Цвет текста в зависимости от темы
+        ),
       ),
-      body: Stack(
-        children: [
-          ListView.builder(
-            itemCount: currencies.length,
-            itemBuilder: (context, index) {
-              final currency = currencies[index];
-              final isSelected = selectedCurrency?['id'] == currency['id'];
+      backgroundColor: isDarkMode
+          ? Color.fromARGB(255, 6, 16, 38)
+          : Colors.white,  // Цвет фона AppBar в зависимости от темы
+    ),
+    body: Stack(
+      children: [
+        ListView.builder(
+          itemCount: currencies.length,
+          itemBuilder: (context, index) {
+            final currency = currencies[index];
+            final isSelected = selectedCurrency?['id'] == currency['id'];
 
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedCurrency =
-                        isSelected ? null : currency; // Снять выбор, если повторно нажать
-                  });
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.blueAccent : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: Colors.blue.withOpacity(0.5),
-                              blurRadius: 10,
-                              offset: Offset(0, 5),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    currency['name'],
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // Все кнопки в одном Positioned
-          Positioned(
-            bottom: 20,
-            right: 20,
-            child: Column(
-              children: [
-                FloatingActionButton(
-                  heroTag: 'addButton',
-                  backgroundColor: Colors.green,
-                  onPressed: () {
-                    _nameController.clear();
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text('Add Currency'),
-                          content: TextField(
-                            controller: _nameController,
-                            decoration: InputDecoration(labelText: 'Currency Name'),
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  selectedCurrency =
+                      isSelected ? null : currency; // Снять выбор, если повторно нажать
+                });
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color.fromARGB(255, 136, 138, 246)
+                      : (isDarkMode
+                          ? const Color.fromARGB(255, 120, 120, 120)
+                              .withOpacity(0.3)
+                          : const Color.fromARGB(255, 230, 230, 230)
+                              .withOpacity(0.8)),  // Изменение фона контейнера
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color.fromARGB(255, 103, 13, 237)
+                                .withOpacity(0.5),
+                            blurRadius: 10,
+                            offset: Offset(0, 5),
                           ),
-                          actions: [
-                            TextButton(
-                              child: Text('Cancel'),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                            TextButton(
-                              child: Text('Add'),
-                              onPressed: () {
-                                final name = _nameController.text;
-
-                                if (name.isNotEmpty) {
-                                  _addCurrency(name);
-                                  Navigator.of(context).pop();
-                                }
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                  child: Icon(Icons.add),
+                        ]
+                      : null,
                 ),
-                SizedBox(height: 10),
-                if (selectedCurrency != null)
-                  FloatingActionButton(
-                    heroTag: 'editButton',
-                    backgroundColor: Colors.blue,
-                    onPressed: () {
-                      if (selectedCurrency != null) {
-                        _showEditDialog(
-                            selectedCurrency!['id'], selectedCurrency!['name']);
-                      }
-                    },
-                    child: Icon(Icons.edit),
+                margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  currency['name'],
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : (isDarkMode ? Colors.white : Colors.black),  // Цвет текста в зависимости от темы
+                    fontSize: 18,
                   ),
-                if (selectedCurrency != null) SizedBox(height: 10),
-                if (selectedCurrency != null)
-                  FloatingActionButton(
-                    heroTag: 'deleteButton',
-                    backgroundColor: Colors.red,
-                    onPressed: () {
-                      if (selectedCurrency != null) {
-                        _deleteCurrency(selectedCurrency!['id']);
-                        setState(() {
-                          selectedCurrency = null;
-                        });
-                      }
+                ),
+              ),
+            );
+          },
+        ),
+
+        // Все кнопки в одном Positioned
+        Positioned(
+          bottom: 20,
+          right: 20,
+          child: Column(
+            children: [
+              FloatingActionButton(
+                heroTag: 'addButton',
+                backgroundColor: const Color.fromARGB(255, 141, 118, 244),
+                onPressed: () {
+                  _nameController.clear();
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: Text('Add Currency'),
+                        content: TextField(
+                          controller: _nameController,
+                          decoration: InputDecoration(labelText: 'Currency Name'),
+                        ),
+                        actions: [
+                          TextButton(
+                            child: Text('Cancel'),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                          TextButton(
+                            child: Text('Add'),
+                            onPressed: () {
+                              final name = _nameController.text;
+
+                              if (name.isNotEmpty) {
+                                _addCurrency(name);
+                                Navigator.of(context).pop();
+                              }
+                            },
+                          ),
+                        ],
+                      );
                     },
-                    child: Icon(Icons.delete),
-                  ),
-              ],
-            ),
+                  );
+                },
+                child: Icon(Icons.add),
+              ),
+              SizedBox(height: 10),
+              if (selectedCurrency != null)
+                FloatingActionButton(
+                  heroTag: 'editButton',
+                  backgroundColor: const Color.fromARGB(255, 153, 150, 236),
+                  onPressed: () {
+                    if (selectedCurrency != null) {
+                      _showEditDialog(
+                          selectedCurrency!['id'], selectedCurrency!['name']);
+                    }
+                  },
+                  child: Icon(Icons.edit),
+                ),
+              if (selectedCurrency != null) SizedBox(height: 10),
+              if (selectedCurrency != null)
+                FloatingActionButton(
+                  heroTag: 'deleteButton',
+                  backgroundColor: Colors.red,
+                  onPressed: () {
+                    if (selectedCurrency != null) {
+                      _deleteCurrency(selectedCurrency!['id']);
+                      setState(() {
+                        selectedCurrency = null;
+                      });
+                    }
+                  },
+                  child: Icon(Icons.delete),
+                ),
+            ],
           ),
-        ],
-      ),
-      backgroundColor: Color(0xFF0F1624),
-    );
-  }
+        ),
+      ],
+    ),
+    backgroundColor: isDarkMode
+        ? Color.fromARGB(255, 4, 5, 35)
+        : Colors.white,  // Цвет фона в зависимости от темы
+  );
+}
 }

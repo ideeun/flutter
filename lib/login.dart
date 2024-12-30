@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:convert'; // Для работы с JSON
-import 'package:http/http.dart' as http;
-import 'custom_screen.dart'; // HTTP клиент
+import 'custom_screen.dart'; // Ваш экран
+import 'api_servic.dart'; // HTTP клиент
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -20,45 +19,21 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text;
 
     if (_formKey.currentState!.validate()) {
-      final url = Uri.parse('http://127.0.0.1:8000/api/login/'); // Ваш Django API URL
-
       try {
-        final response = await http.post(
-          url,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'username': username, 'password': password}),
+        final response = await Api.login(username, password);
+        final userName = response['username']; // Предполагаем, что сервер возвращает username
+        print('Logged in as $userName');
+
+        // Переход на CustomScreen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CustomScreen(userName: userName),
+          ),
         );
-
-        if (response.statusCode == 200) {
-          // Успешный логин: извлекаем ID пользователя
-          final data = jsonDecode(response.body);
-          print(response.body);
-          final userName = data['username'];
-          print(userName);
-
-          // Переход на CustomScreen с передачей ID
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CustomScreen(userName: userName),
-            ),
-          );
-        } else if (response.statusCode == 401) {
-          setState(() {
-            _errorMessage = 'Invalid username or password';
-          });
-        } else if (response.statusCode == 500) {
-          setState(() {
-            _errorMessage = 'Server error. Please try again later.';
-          });
-        } else {
-          setState(() {
-            _errorMessage = 'Something went wrong. Please try again.';
-          });
-        }
       } catch (e) {
         setState(() {
-          _errorMessage = 'Unable to connect to the server. Please check your connection.';
+          _errorMessage = e.toString().replaceFirst('Exception: ', '');
         });
       }
     }
@@ -67,57 +42,123 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Login'),
-      ),
+      backgroundColor: const Color.fromARGB(255, 3, 12, 34),  // Темный фон
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextFormField(
-                controller: _usernameController,
-                decoration: InputDecoration(
-                  labelText: 'Username',
-                  border: OutlineInputBorder(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Название приложения с цветовым градиентом
+            ShaderMask(
+              shaderCallback: (bounds) {
+                return LinearGradient(
+                  colors: [const Color.fromARGB(255, 113, 21, 193), const Color.fromARGB(255, 66, 162, 194), const Color.fromARGB(255, 245, 43, 110)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ).createShader(bounds);
+              },
+              child: Text(
+                'FXer',
+                style: TextStyle(
+                  fontSize: 64,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontStyle: FontStyle.italic, // Цвет текста, но фактически применяется градиент
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your username';
-                  }
-                  return null;
-                },
               ),
-              SizedBox(height: 16.0),
-              TextFormField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                ),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your password';
-                  }
-                  return null;
-                },
+            ),
+            SizedBox(height: 50),
+            
+            // Форма для ввода логина и пароля
+            Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _usernameController,
+                    style: TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Username',
+                      labelStyle: TextStyle(
+                        foreground: Paint()..shader = LinearGradient(
+                          colors: [
+                            const Color.fromARGB(255, 113, 21, 193),
+                            const Color.fromARGB(255, 66, 162, 194),
+                            const Color.fromARGB(255, 245, 43, 110)
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ).createShader(Rect.fromLTWH(0, 0, 200, 50)),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),  // Округление углов
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),  // Округление углов при фокусе
+                        borderSide: BorderSide(color: const Color.fromARGB(255, 141, 131, 255)),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your username';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 20),
+                  TextFormField(
+                    controller: _passwordController,
+                    style: TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      labelStyle: TextStyle(
+                        foreground: Paint()..shader = LinearGradient(
+                          colors: [
+                            const Color.fromARGB(255, 113, 21, 193),
+                            const Color.fromARGB(255, 66, 162, 194),
+                            const Color.fromARGB(255, 245, 43, 110)
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ).createShader(Rect.fromLTWH(0, 0, 200, 50)),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),  // Округление углов
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),  // Округление углов при фокусе
+                        borderSide: BorderSide(color: const Color.fromARGB(255, 141, 131, 255)),
+                      ),
+                    ),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 16.0),
+                  if (_errorMessage != null)
+                    Text(
+                      _errorMessage!,
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  SizedBox(height: 16.0),
+                  // Кнопка с цветами
+                  ElevatedButton(
+                    onPressed: _login,
+                    style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 76, 8, 235), // Фиолетовый фон кнопки
+                      foregroundColor: Colors.white, // Белый текст
+                    ),
+                    child: Text('Login'),
+                  ),
+                ],
               ),
-              SizedBox(height: 16.0),
-              if (_errorMessage != null)
-                Text(
-                  _errorMessage!,
-                  style: TextStyle(color: Colors.red),
-                ),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: _login,
-                child: Text('Login'),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

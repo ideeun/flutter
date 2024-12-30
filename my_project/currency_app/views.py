@@ -12,7 +12,7 @@ class EventListView(APIView):
     """
     def get(self, request):
         events = Event.objects.all()
-        serializer = EventSerializer(events, many=True)
+        serializer = EventSerializer(events, many=False)
         return Response(serializer.data)
     
     def post(self, request):
@@ -65,9 +65,11 @@ class EventDetailView(APIView):
         if event is None:
             return Response({'error': 'Event not found'}, status=status.HTTP_404_NOT_FOUND)
         
-        event.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-    
+        try:
+            event.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response({'error': f'Error deleting event: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class LoginView(APIView):
     def post(self, request):
@@ -135,6 +137,8 @@ class UserView(APIView):
         # Удаление пользователя
         user.delete()
         return Response({'message': 'User deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
+
 class CurrencyView(APIView):
     
     # Получить все валюты
@@ -174,5 +178,9 @@ class CurrencyView(APIView):
         currency = self.get_object(id)
         if not currency:
             return Response({'error': 'Currency not found'}, status=status.HTTP_404_NOT_FOUND)
-        currency.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        try:
+            currency.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

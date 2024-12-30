@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'api_servic.dart';
+import 'tema.dart'; 
+import 'package:provider/provider.dart';
 
 class UsersScreen extends StatefulWidget {
   @override
@@ -9,10 +10,11 @@ class UsersScreen extends StatefulWidget {
 
 class _UsersScreenState extends State<UsersScreen> {
   List<dynamic> users = [];
-
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController usernameController = TextEditingController();  // Новый контроллер для username
+  final TextEditingController usernameController = TextEditingController();
+  // final Api apiService = Api();
+  dynamic selectedUser; // To keep track of the selected user
 
   @override
   void initState() {
@@ -22,21 +24,10 @@ class _UsersScreenState extends State<UsersScreen> {
 
   Future<void> _fetchUsers() async {
     try {
-      final response = await http.get(Uri.parse('http://127.0.0.1:8000/api/users/'));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        print(data);
-        if (data is List) {
-          setState(() {
-            users = data;
-          });
-        } else {
-          _showSnackbar('Unexpected data format.');
-        }
-      } else {
-        _showSnackbar('Failed to load users: ${response.statusCode}');
-      }
+      final fetchedUsers = await Api.fetchUsers();
+      setState(() {
+        users = fetchedUsers;
+      });
     } catch (e) {
       _showSnackbar('Error: $e');
     }
@@ -44,57 +35,29 @@ class _UsersScreenState extends State<UsersScreen> {
 
   Future<void> _addUser(String username, String email, String password) async {
     try {
-      if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$").hasMatch(email)) {
-        _showSnackbar('Please enter a valid email address.');
-        return;
-      }
-      final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/api/users/'), // Используем ваш эндпоинт
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'username': username,
-          'email': email,
-          'password': password,
-        }),
-      );
       if (username.isEmpty || email.isEmpty || password.isEmpty) {
         _showSnackbar('All fields must be filled.');
         return;
       }
 
-      if (response.statusCode == 201) {
-        _fetchUsers(); // Обновляем список пользователей после добавления
-        _showSnackbar('User added successfully!');
-      } else if (response.statusCode == 400) {
-        final responseBody = json.decode(response.body);
-        print('Error response body: $responseBody');
-        final error = responseBody['error'] ?? 'Validation error';
-        _showSnackbar('Failed to add user: ${error['detail'] ?? 'Unknown error'}');
-      } else {
-        _showSnackbar('Unexpected error: ${response.statusCode}');
+      if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zAZ0-9.-]+\.[a-zA-Z]{2,4}$").hasMatch(email)) {
+        _showSnackbar('Please enter a valid email address.');
+        return;
       }
+
+      await Api.addUser(username, email, password);
+      _fetchUsers();
+      _showSnackbar('User added successfully!');
     } catch (e) {
       _showSnackbar('Error: $e');
     }
   }
 
-  Future<void> _editUser(String userId) async {
-    // Функция редактирования пользователя
-    // Здесь можно открыть диалоговое окно и отправить PUT запрос
-  }
-
-  Future<void> _deleteUser(String userId) async {
+  Future<void> _deleteUser(int userId) async {
     try {
-      final response = await http.delete(
-        Uri.parse('http://127.0.0.1:8000/api/users/$userId/'), // Используем ваш эндпоинт для удаления
-        headers: {'Content-Type': 'application/json'},
-      );
-      if (response.statusCode == 204) {
-        _fetchUsers(); // Обновляем список пользователей после удаления
-        _showSnackbar('User deleted successfully!');
-      } else {
-        _showSnackbar('Failed to delete user: ${response.statusCode}');
-      }
+      await Api.deleteUser(userId);
+      _fetchUsers();
+      _showSnackbar('User deleted successfully!');
     } catch (e) {
       _showSnackbar('Error: $e');
     }
@@ -103,39 +66,6 @@ class _UsersScreenState extends State<UsersScreen> {
   void _showSnackbar(String message) {
     final snackBar = SnackBar(content: Text(message));
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
-  }
-
-  void _showActionDialog(String userId) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Choose action'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.edit),
-                title: Text('Edit'),
-                onTap: () {
-                  _editUser(userId);
-                  Navigator.of(context).pop();
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.delete),
-                title: Text('Delete'),
-                onTap: () {
-                  _deleteUser(userId);
-                  Navigator.of(context).pop();
-                },
-              ),
-              
-            ],
-          ),
-        );
-      },
-    );
   }
 
   void _showAddUserDialog() {
@@ -147,7 +77,7 @@ class _UsersScreenState extends State<UsersScreen> {
           content: Column(
             children: [
               TextField(
-                controller: usernameController,  // Поле для username
+                controller: usernameController,
                 decoration: InputDecoration(hintText: 'Username'),
               ),
               TextField(
@@ -165,7 +95,7 @@ class _UsersScreenState extends State<UsersScreen> {
             TextButton(
               onPressed: () {
                 _addUser(
-                  usernameController.text,  // Передаем username
+                  usernameController.text,
                   emailController.text,
                   passwordController.text,
                 );
@@ -188,34 +118,123 @@ class _UsersScreenState extends State<UsersScreen> {
     );
   }
 
+  void _showEditDialog( userId, String username) {
+    usernameController.text = username;
+    _showAddUserDialog();  // Open the same dialog for editing
+  }
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color.fromARGB(255, 15, 22, 36),
-      appBar: AppBar(
-        title: Text('Users'),
-        backgroundColor: Color.fromARGB(255, 15, 22, 36),
-      ),
-      body: users.isEmpty
+Widget build(BuildContext context) {
+  final themeProvider = Provider.of<ThemeProvider>(context);
+  final isDarkMode = themeProvider.isDarkMode;  // Проверка на темную тему
+
+  return Scaffold(
+    backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : Colors.white, // Фон для Scaffold
+    appBar: AppBar(
+      title: Text('Users'),
+      backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : const Color.fromARGB(255, 255, 255, 255),  // Фон AppBar
+      iconTheme: IconThemeData(color: isDarkMode ? Colors.white : Colors.black),  // Цвет иконок в AppBar
+    ),
+    body: GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedUser = null; // Reset selection if clicked outside
+        });
+      },
+      child: users.isEmpty
           ? Center(child: CircularProgressIndicator())
           : ListView.builder(
               itemCount: users.length,
               itemBuilder: (context, index) {
                 final user = users[index];
-                return Card(
-                  margin: EdgeInsets.all(10),
-                  child: ListTile(
-                    title: Text(user['username'] ?? 'Имя не предоставлено'),
-                    onTap: () => _showActionDialog(user['id'].toString()), // Выбор действия при нажатии на пользователя
+                bool isSelected = selectedUser == user;
+
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      // Toggle selection
+                      if (selectedUser == user) {
+                        selectedUser = null;
+                      } else {
+                        selectedUser = user;
+                      }
+                    });
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Color.fromARGB(255, 136, 138, 246)
+                          : (isDarkMode
+                              ? Color.fromARGB(255, 120, 120, 120).withOpacity(0.3)
+                              : Colors.grey.withOpacity(0.1)),
+                      borderRadius: BorderRadius.circular(20), // Added rounded corners
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: const Color.fromARGB(255, 103, 13, 237).withOpacity(0.5),
+                                blurRadius: 10,
+                                offset: Offset(0, 5),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    margin: EdgeInsets.all(10),
+                    child: ListTile(
+                      title: Text(
+                        user['username'] ?? 'Username not provided',
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black, // Цвет текста
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
                   ),
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddUserDialog,
-        child: Icon(Icons.add),
-        backgroundColor: Color(0xFF6C63FF),
-      ),
-    );
-  }
+    ),
+    floatingActionButton: Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // "Add" button always visible
+        FloatingActionButton(
+          heroTag: 'addButton',
+          backgroundColor: Color.fromARGB(255, 141, 118, 244),
+          onPressed: _showAddUserDialog,
+          child: Icon(Icons.add),
+        ),
+        SizedBox(height: 10),
+        // "Edit" button visible if a user is selected
+        if (selectedUser != null)
+          FloatingActionButton(
+            heroTag: 'editButton',
+            backgroundColor: Color.fromARGB(255, 153, 150, 236),
+            onPressed: () {
+              if (selectedUser != null) {
+                _showEditDialog(selectedUser['id'], selectedUser['username']);
+              }
+            },
+            child: Icon(Icons.edit),
+          ),
+        SizedBox(height: 10),
+        // "Delete" button visible if a user is selected
+        if (selectedUser != null)
+          FloatingActionButton(
+            heroTag: 'deleteButton',
+            backgroundColor: Colors.red,
+            onPressed: () {
+              if (selectedUser != null) {
+                _deleteUser(selectedUser['id']);
+                setState(() {
+                  selectedUser = null; // Reset selected user
+                });
+              }
+            },
+            child: Icon(Icons.delete),
+          ),
+      ],
+    ),
+  );
+}
 }
