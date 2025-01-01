@@ -3,8 +3,12 @@ import 'api_servic.dart'; // Импортируем CurrencyApi
 import 'dart:convert';
 import 'tema.dart'; 
 import 'package:provider/provider.dart';
+import 'custom_screen.dart';
 
 class CurrencyTableScreen extends StatefulWidget {
+  final Function() onCurrencyAdded;
+
+CurrencyTableScreen({required this.onCurrencyAdded});
   @override
   _CurrencyTableScreenState createState() => _CurrencyTableScreenState();
 }
@@ -36,8 +40,10 @@ class _CurrencyTableScreenState extends State<CurrencyTableScreen> {
   Future<void> _addCurrency(String name) async {
     try {
       await Api.addCurrency(name);
-      _fetchCurrencies(); // Обновляем список валют после добавления
+      _fetchCurrencies();
+      widget.onCurrencyAdded();// Обновляем список валют после добавления
       _showSnackbar('Currency added successfully!');
+      // CustomScreen.initState();
     } catch (e) {
       _showSnackbar('Error: $e');
     }
@@ -47,7 +53,9 @@ class _CurrencyTableScreenState extends State<CurrencyTableScreen> {
   Future<void> _deleteCurrency(int id) async {
     try {
       await Api.deleteCurrency(id);
-      _fetchCurrencies(); // Обновляем список валют после удаления
+      _fetchCurrencies(); 
+      widget.onCurrencyAdded();// Обновляем список валют после добавления
+// Обновляем список валют после удаления
       _showSnackbar('Currency deleted successfully!');
     } catch (e) {
       _showSnackbar('Error: $e');
@@ -58,7 +66,9 @@ class _CurrencyTableScreenState extends State<CurrencyTableScreen> {
   Future<void> _editCurrency(int id, String newName) async {
     try {
       await Api.editCurrency(id, newName);
-      _fetchCurrencies(); // Обновляем список валют после изменения
+      _fetchCurrencies();
+      widget.onCurrencyAdded();// Обновляем список валют после добавления
+ // Обновляем список валют после изменения
       _showSnackbar('Currency updated successfully!');
     } catch (e) {
       _showSnackbar('Error: $e');

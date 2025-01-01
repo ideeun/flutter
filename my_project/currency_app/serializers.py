@@ -23,7 +23,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id','username', 'email','password']  # Поля для работы
-        extra_kwargs = {'password': {'write_only': True}}  # Пароль только для записи
+        extra_kwargs = {'password': {'write_only':False }}  # Пароль только для записи
 
     def create(self, validated_data):
         try:# Хэшируем пароль перед сохранением

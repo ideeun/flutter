@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'tema.dart'; 
 import 'package:provider/provider.dart';
 import 'api_servic.dart';
+import 'dia.dart';
+
 
 class CashScreen extends StatefulWidget {
   @override
@@ -135,7 +137,6 @@ Widget build(BuildContext context) {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  // headingRowColor: MaterialStateColor.resolveWith((states) =>  const Color.fromARGB(255, 115, 138, 250)),  // Цвет заголовков в зависимости от темы
                   columns: const [
                     DataColumn(label: Text('Currency', style: TextStyle(fontWeight: FontWeight.bold))),
                     DataColumn(label: Text('Buy Total', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -173,18 +174,13 @@ Widget build(BuildContext context) {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            // headingRowColor: MaterialStateColor.resolveWith((states) =>  const Color.fromARGB(255, 115, 138, 250)),  // Цвет заголовков в зависимости от темы
             columns: const [
-              // DataColumn(label: Text('Buy', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-              // DataColumn(label: Text('Sell', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
               DataColumn(label: Text('Profit', style: TextStyle(fontWeight: FontWeight.bold))),
               DataColumn(label: Text('Remaining', style: TextStyle(fontWeight: FontWeight.bold))),
             ],
             rows: [
               DataRow(
                 cells: [
-                  // DataCell(Text(totalBuy.toStringAsFixed(2), style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
-                  // DataCell(Text(totalSell.toStringAsFixed(2), style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
                   DataCell(Text(
                     totalProfitFromFormula.toStringAsFixed(2),
                     style: TextStyle(
@@ -201,6 +197,19 @@ Widget build(BuildContext context) {
         ),
       ],
     ),
+    floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    floatingActionButton: FloatingActionButton(
+  onPressed: () {
+    final processedData = processTableData(events);
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => ProfitChartScreen(
+        processedData: processedData,
+      ),
+    ));
+  },
+  backgroundColor: isDarkMode ? const Color.fromARGB(255, 17, 100, 200) : Colors.blue,
+  child: const Icon(Icons.bar_chart),
+),
   );
 }
 }

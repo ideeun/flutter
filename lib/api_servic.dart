@@ -4,6 +4,20 @@ import 'package:http/http.dart' as http;
 class Api {
   static const String baseUrl = 'https://ideeun.pythonanywhere.com/api/';
 
+
+  static Future<void> resetPassword(String email) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/reset_password/'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'email': email}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to send reset password email');
+    }
+  }
+
+
   static Future<Map<String, dynamic>> login(String username, String password) async {
     final url = Uri.parse('$baseUrl/login/');
     try {

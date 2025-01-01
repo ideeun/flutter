@@ -13,7 +13,7 @@ class _UsersScreenState extends State<UsersScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
-  // final Api apiService = Api();
+  final TextEditingController oldPasswordController = TextEditingController();  // Для старого пароля
   dynamic selectedUser; // To keep track of the selected user
 
   @override
@@ -75,6 +75,7 @@ class _UsersScreenState extends State<UsersScreen> {
         return AlertDialog(
           title: Text('Add New User'),
           content: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: usernameController,
@@ -118,123 +119,102 @@ class _UsersScreenState extends State<UsersScreen> {
     );
   }
 
-  void _showEditDialog( userId, String username) {
-    usernameController.text = username;
-    _showAddUserDialog();  // Open the same dialog for editing
-  }
-
   @override
-Widget build(BuildContext context) {
-  final themeProvider = Provider.of<ThemeProvider>(context);
-  final isDarkMode = themeProvider.isDarkMode;  // Проверка на темную тему
+  Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;  // Проверка на темную тему
 
-  return Scaffold(
-    backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : Colors.white, // Фон для Scaffold
-    appBar: AppBar(
-      title: Text('Users'),
-      backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : const Color.fromARGB(255, 255, 255, 255),  // Фон AppBar
-      iconTheme: IconThemeData(color: isDarkMode ? Colors.white : Colors.black),  // Цвет иконок в AppBar
-    ),
-    body: GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedUser = null; // Reset selection if clicked outside
-        });
-      },
-      child: users.isEmpty
-          ? Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: users.length,
-              itemBuilder: (context, index) {
-                final user = users[index];
-                bool isSelected = selectedUser == user;
+    return Scaffold(
+      backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : Colors.white, 
+      appBar: AppBar(
+        title: Text('Users'),
+        backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : const Color.fromARGB(255, 255, 255, 255),  
+        iconTheme: IconThemeData(color: isDarkMode ? Colors.white : Colors.black),
+      ),
+      body: GestureDetector(
+        onTap: () {
+          setState(() {
+            selectedUser = null; 
+          });
+        },
+        child: users.isEmpty
+            ? Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                itemCount: users.length,
+                itemBuilder: (context, index) {
+                  final user = users[index];
+                  bool isSelected = selectedUser == user;
 
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      // Toggle selection
-                      if (selectedUser == user) {
-                        selectedUser = null;
-                      } else {
-                        selectedUser = user;
-                      }
-                    });
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? Color.fromARGB(255, 136, 138, 246)
-                          : (isDarkMode
-                              ? Color.fromARGB(255, 120, 120, 120).withOpacity(0.3)
-                              : Colors.grey.withOpacity(0.1)),
-                      borderRadius: BorderRadius.circular(20), // Added rounded corners
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: const Color.fromARGB(255, 103, 13, 237).withOpacity(0.5),
-                                blurRadius: 10,
-                                offset: Offset(0, 5),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    margin: EdgeInsets.all(10),
-                    child: ListTile(
-                      title: Text(
-                        user['username'] ?? 'Username not provided',
-                        style: TextStyle(
-                          color: isDarkMode ? Colors.white : Colors.black, // Цвет текста
-                          fontSize: 16,
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (selectedUser == user) {
+                          selectedUser = null;
+                        } else {
+                          selectedUser = user;
+                        }
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Color.fromARGB(255, 136, 138, 246)
+                            : (isDarkMode
+                                ? Color.fromARGB(255, 120, 120, 120).withOpacity(0.3)
+                                : Colors.grey.withOpacity(0.1)),
+                        borderRadius: BorderRadius.circular(20), 
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: const Color.fromARGB(255, 103, 13, 237).withOpacity(0.5),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 5),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      margin: EdgeInsets.all(10),
+                      child: ListTile(
+                        title: Text(
+                          user['username'] ?? 'Username not provided',
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white : Colors.black, 
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
+                  );
+                },
+              ),
+      ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: 'addButton',
+            backgroundColor: Color.fromARGB(255, 141, 118, 244),
+            onPressed: _showAddUserDialog,
+            child: Icon(Icons.add),
+          ),
+          SizedBox(height: 10),
+          if (selectedUser != null)
+            FloatingActionButton(
+              heroTag: 'deleteButton',
+              backgroundColor: Colors.red,
+              onPressed: () {
+                if (selectedUser != null) {
+                  _deleteUser(selectedUser['id']);
+                  setState(() {
+                    selectedUser = null; 
+                  });
+                }
               },
+              child: Icon(Icons.delete),
             ),
-    ),
-    floatingActionButton: Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        // "Add" button always visible
-        FloatingActionButton(
-          heroTag: 'addButton',
-          backgroundColor: Color.fromARGB(255, 141, 118, 244),
-          onPressed: _showAddUserDialog,
-          child: Icon(Icons.add),
-        ),
-        SizedBox(height: 10),
-        // "Edit" button visible if a user is selected
-        if (selectedUser != null)
-          FloatingActionButton(
-            heroTag: 'editButton',
-            backgroundColor: Color.fromARGB(255, 153, 150, 236),
-            onPressed: () {
-              if (selectedUser != null) {
-                _showEditDialog(selectedUser['id'], selectedUser['username']);
-              }
-            },
-            child: Icon(Icons.edit),
-          ),
-        SizedBox(height: 10),
-        // "Delete" button visible if a user is selected
-        if (selectedUser != null)
-          FloatingActionButton(
-            heroTag: 'deleteButton',
-            backgroundColor: Colors.red,
-            onPressed: () {
-              if (selectedUser != null) {
-                _deleteUser(selectedUser['id']);
-                setState(() {
-                  selectedUser = null; // Reset selected user
-                });
-              }
-            },
-            child: Icon(Icons.delete),
-          ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 }

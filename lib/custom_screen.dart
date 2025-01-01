@@ -15,7 +15,7 @@ import 'package:provider/provider.dart';
 class CustomScreen extends StatefulWidget {
   final String userName;
 
-CustomScreen({required this.userName});
+  CustomScreen({required this.userName});
 
   @override
   _CustomScreenState createState() => _CustomScreenState();
@@ -42,7 +42,7 @@ class _CustomScreenState extends State<CustomScreen> {
   void initState() {
     super.initState();
     totalController.text = '0';
-    _fetchCurrencies(); // Загрузка валют
+    fetchCurrencies(); // Загрузка валют
   }
 
   // void _toggleTheme() {
@@ -50,7 +50,7 @@ class _CustomScreenState extends State<CustomScreen> {
   //     isDarkMode = !isDarkMode;
   //   });
   // }
-  Future<void> _fetchCurrencies() async {
+  Future<void> fetchCurrencies() async {
     try {
       final data = await Api.fetchCurrencies();
       if (mounted) {  // Проверка, если виджет все еще в дереве
@@ -110,10 +110,10 @@ Future<void> clearEvents() async {
     double quantity = double.tryParse(quantityController.text) ?? 0;
     double exchangeRate = double.tryParse(exchangeRateController.text) ?? 0;
     double total = quantity * exchangeRate;
-
+    if (mounted) {
     setState(() {
       totalController.text = total.toStringAsFixed(2); // Округляем до двух знаков после запятой
-    });
+    });}
   }
 
   // Функция для добавления новой записи
@@ -187,27 +187,37 @@ Future<void> clearEvents() async {
 
   // Функции для активации/деактивации стрелок
   void toggleSale() {
+    if (mounted) {
     setState(() {
       isSaleActive = !isSaleActive;
       isBuyActive = false; // Отключаем покупку, если выбрана продажа
-    });
+    });}
   }
 
   void toggleBuy() {
+    if (mounted) {
     setState(() {
       isBuyActive = !isBuyActive;
       isSaleActive = false; // Отключаем продажу, если выбрана покупка
-    });
+    });}
   }
 
   void _logOut() {
   // Очистить любые данные о пользователе, если необходимо
   // Например, вы можете удалить информацию о текущем пользователе из SharedPreferences или других местах хранения данных
+  if (Navigator.canPop(context)) {
+    if (mounted){
   Navigator.pushReplacement(
     context,
-    MaterialPageRoute(builder: (context) => LoginScreen()), // Перенаправление на экран логина
+    MaterialPageRoute(builder: (context) => LoginScreen()),
+  );
+} else {
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => LoginScreen()),
   );
 }
+  }}
 
 
   @override
@@ -239,9 +249,9 @@ Widget build(BuildContext context) {
         actions: [
           IconButton(
             icon: Icon(isDarkMode ? Icons.wb_sunny : Icons.brightness_3,
-            color: isDarkMode ? Colors.white : Colors.black),
+              color: isDarkMode ? Colors.white : Colors.black),
             onPressed: () {
-              themeProvider.toggleTheme();  // Используем ThemeProvider для переключения темы
+              themeProvider.toggleTheme();  // Use ThemeProvider to toggle the theme
             },
           ),
         ],
@@ -250,7 +260,6 @@ Widget build(BuildContext context) {
         backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : Colors.white,
         child: Column(
           children: <Widget>[
-            // Верхняя часть с названием и кнопкой выхода
             Container(
               padding: EdgeInsets.all(16.0),
               decoration: BoxDecoration(
@@ -277,8 +286,8 @@ Widget build(BuildContext context) {
                     leading: Icon(Icons.logout, color: isDarkMode ? Colors.white : Colors.black),
                     title: Text('Log Out', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
                     onTap: () {
-                      Navigator.pop(context); // Закрыть меню
-                      _logOut();  // Вызвать функцию выхода
+                      Navigator.pop(context); // Close the drawer
+                      _logOut();  // Log out function
                     },
                   ),
                 ],
@@ -304,7 +313,7 @@ Widget build(BuildContext context) {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => CurrencyTableScreen()),
+                        MaterialPageRoute(builder: (context) => CurrencyTableScreen(onCurrencyAdded: fetchCurrencies,)),
                       );
                     },
                   ),
@@ -349,204 +358,212 @@ Widget build(BuildContext context) {
           ],
         ),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDarkMode 
-              ? [Color.fromARGB(255, 4, 5, 33), Color.fromARGB(255, 15, 17, 62), Color.fromARGB(255, 64, 77, 213)]
-              : [Color.fromARGB(255, 41, 47, 120), Color.fromARGB(255, 74, 77, 121), Color.fromARGB(255, 188, 190, 207)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: OrientationBuilder(
+        builder: (context, orientation) {
+          bool isPortrait = orientation == Orientation.portrait;
+
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDarkMode 
+                  ? [Color.fromARGB(255, 4, 5, 33), Color.fromARGB(255, 15, 17, 62), Color.fromARGB(255, 64, 77, 213)]
+                  : [Color.fromARGB(255, 41, 47, 120), Color.fromARGB(255, 74, 77, 121), Color.fromARGB(255, 188, 190, 207)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: toggleSale,
-                    child: Transform.translate(
-                      offset: isSaleActive ? Offset(0, -5) : Offset.zero, // Смещение при выборе
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isSaleActive
-                                ? [const Color.fromARGB(255, 51, 5, 235), const Color.fromARGB(255, 20, 162, 233)]
-                                : [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.1)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
+                  if (isPortrait)
+                    // Portrait mode specific widgets
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: toggleSale,
+                          child: Transform.translate(
+                            offset: isSaleActive ? Offset(0, -5) : Offset.zero,
+                            child: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: isSaleActive
+                                      ? [const Color.fromARGB(255, 51, 5, 235), const Color.fromARGB(255, 20, 162, 233)]
+                                      : [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.1)],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: isSaleActive
+                                    ? [BoxShadow(color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)]
+                                    : [],
+                              ),
+                              child: Icon(
+                                Icons.arrow_upward,
+                                color: isSaleActive ? const Color.fromARGB(255, 251, 251, 251) : textColor,
+                              ),
+                            ),
                           ),
-                          borderRadius: BorderRadius.circular(10), // Округленная линия
-                          boxShadow: isSaleActive
-                              ? [BoxShadow(color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)]
-                              : [],
                         ),
-                        child: Icon(
-                          Icons.arrow_upward,
-                          color: isSaleActive ? const Color.fromARGB(255, 251, 251, 251) : textColor,
+                        SizedBox(width: 10),
+                        GestureDetector(
+                          onTap: toggleBuy,
+                          child: Transform.translate(
+                            offset: isBuyActive ? Offset(0, -5) : Offset.zero,
+                            child: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: isBuyActive
+                                      ? [const Color.fromARGB(255, 82, 14, 228), const Color.fromARGB(255, 80, 191, 224)]
+                                      : [const Color.fromARGB(255, 197, 192, 205).withOpacity(0.1), Colors.white.withOpacity(0.1)],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: isBuyActive
+                                    ? [BoxShadow(color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)]
+                                    : [],
+                              ),
+                              child: Icon(
+                                Icons.arrow_downward,
+                                color: isBuyActive ? const Color.fromARGB(255, 238, 242, 239) : textColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  SizedBox(height: 20),
+                  // Other form elements
+                  InputDecorator(
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.1),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      isDense: true,
+                    ),
+                    child: DropdownButton<int>(
+                      value: selectedCurrencyId,
+                      onChanged: (int? newValue) {
+                        setState(() {
+                          selectedCurrencyId = newValue;
+                          selectedCurrencyName = currencies.firstWhere((currency) => currency['id'] == newValue)['name'];
+                        });
+                      },
+                      items: currencies.map<DropdownMenuItem<int>>((currency) {
+                        return DropdownMenuItem<int>(
+                          value: currency['id'],
+                          child: Text(
+                            currency['name'],
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 16,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      dropdownColor: isDarkMode ? Color(0xFF0F1624) : Color.fromARGB(255, 238, 242, 239),
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 14,
+                      ),
+                      hint: Text(
+                        'Select Currency',
+                        style: TextStyle(
+                          color: textColor.withOpacity(0.6),
+                          fontSize: 14,
                         ),
                       ),
+                      isExpanded: true,
+                      underline: Container(),
                     ),
                   ),
-                  SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: toggleBuy,
-                    child: Transform.translate(
-                      offset: isBuyActive ? Offset(0, -5) : Offset.zero, // Смещение при выборе
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isBuyActive
-                                ? [const Color.fromARGB(255, 82, 14, 228), const Color.fromARGB(255, 80, 191, 224)]
-                                : [const Color.fromARGB(255, 197, 192, 205).withOpacity(0.1), Colors.white.withOpacity(0.1)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                          borderRadius: BorderRadius.circular(10), // Округленная линия
-                          boxShadow: isBuyActive
-                              ? [BoxShadow(color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)]
-                              : [],
-                        ),
-                        child: Icon(
-                          Icons.arrow_downward,
-                          color: isBuyActive ? const Color.fromARGB(255, 238, 242, 239) : textColor,
-                        ),
+                  SizedBox(height: 20),
+                TextField(
+                  controller: quantityController,
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(color: textColor),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.1),
+                    hintText: 'Quantity',
+                    hintStyle: TextStyle(color: textColor.withOpacity(0.6)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    calculateTotal();
+                  },
+                ),
+                SizedBox(height: 20),
+                TextField(
+                  controller: exchangeRateController,
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(color: textColor),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.1),
+                    hintText: 'Exchange rate',
+                    hintStyle: TextStyle(color: textColor.withOpacity(0.6)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    calculateTotal();
+                  },
+                ),
+                SizedBox(height: 20),
+                TextField(
+                  controller: totalController,
+                  readOnly: true,
+                  style: TextStyle(color: textColor),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.1),
+                    hintText: 'Total',
+                    hintStyle: TextStyle(color: textColor.withOpacity(1)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: addEntry,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 106, 114, 249),
+                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
+                    child: Text('Submit'),
                   ),
+                ),
+                  // Other widgets...
                 ],
               ),
-              SizedBox(height: 20),
-              InputDecorator(
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.1),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
-                  ),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Уменьшаем отступы
-                  isDense: true, // Уменьшаем высоту
-                ),
-                child: DropdownButton<int>(
-                  value: selectedCurrencyId,
-                  onChanged: (int? newValue) {
-                    setState(() {
-                      selectedCurrencyId = newValue;
-                      selectedCurrencyName = currencies.firstWhere((currency) => currency['id'] == newValue)['name'];
-                    });
-                  },
-                  items: currencies.map<DropdownMenuItem<int>>((currency) {
-                    return DropdownMenuItem<int>(
-                      value: currency['id'],
-                      child: Text(
-                        currency['name'],
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 16, // Уменьшаем шрифт
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  dropdownColor:isDarkMode ?Color(0xFF0F1624) : Color.fromARGB(255, 238, 242, 239),
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 14, // Уменьшаем шрифт
-                  ),
-                  hint: Text(
-                    'Select Currency',
-                    style: TextStyle(
-                      color: textColor.withOpacity(0.6),
-                      fontSize: 14, // Уменьшаем шрифт
-                    ),
-                  ),
-                  isExpanded: true,
-                  underline: Container(), // Убираем подчеркивание
-                ),
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: quantityController,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: textColor),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.1),
-                  hintText: 'Quantity',
-                  hintStyle: TextStyle(color: textColor.withOpacity(0.6)),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                onChanged: (value) {
-                  calculateTotal();
-                },
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: exchangeRateController,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: textColor),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.1),
-                  hintText: 'Exchange rate',
-                  hintStyle: TextStyle(color: textColor.withOpacity(0.6)),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                onChanged: (value) {
-                  calculateTotal();
-                },
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: totalController,
-                readOnly: true,
-                style: TextStyle(color: textColor),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.1),
-                  hintText: 'Total',
-                  hintStyle: TextStyle(color: textColor.withOpacity(1)),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
-              Center(
-                child: ElevatedButton(
-                  onPressed: addEntry,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 106, 114, 249),
-                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: Text('Submit'),
-                ),
-              ),
-              // Здесь ваша остальная разметка
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     ),
   );
 }
-
-}
-
+  }

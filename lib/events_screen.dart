@@ -1,5 +1,4 @@
 import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -7,6 +6,10 @@ import 'package:intl/intl.dart';
 import 'api_servic.dart';
 import 'tema.dart'; 
 import 'package:provider/provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart'; // Для доступа к директориям устройства
+import 'dart:io';
 
 class EventsScreen extends StatefulWidget {
   @override
@@ -106,6 +109,60 @@ class _EventsScreenState extends State<EventsScreen> {
       filterEvents();
     });
   }
+
+  Future<void> _generatePdf() async {
+  final pdf = pw.Document();
+
+  pdf.addPage(
+    pw.Page(
+      build: (context) => pw.Table.fromTextArray(
+        context: context,
+        data: [
+          ['Date', 'User', 'Currency', 'Quantity', 'Exchange Rate', 'Total', 'Event Type'],
+          ...filteredEvents.map((event) => [
+                event['created_at'] != null && event['created_at'].isNotEmpty
+                    ? DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(event['created_at']))
+                    : 'Invalid Date',
+                event['user'].toString(),
+                event['currency'].toString(),
+                event['quantity'].toString(),
+                event['exchange_rate'].toString(),
+                event['total'].toString(),
+                event['event_type'],
+              ]),
+        ],
+      ),
+    ),
+  );
+
+  try {
+    // Получаем путь к директории для документов
+    final directory = await getApplicationDocumentsDirectory();
+    final desktopDir = Directory('${directory.path}/MyPDFs');
+    print('Desktop directory path: ${desktopDir.path}'); // Выводим путь в консоль
+
+    // Создаём папку, если её нет
+    if (!desktopDir.existsSync()) {
+      desktopDir.createSync(recursive: true);
+    }
+
+    // Сохраняем файл в папке
+    final outputFile = File('${desktopDir.path}/events_table.pdf');
+    await outputFile.writeAsBytes(await pdf.save());
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('PDF saved at ${outputFile.path}')),
+    );
+  } catch (e) {
+    print('Error generating PDF: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error generating PDF')),
+    );
+  }
+}
+
+
+
   @override
   void initState() {
     super.initState();
@@ -125,8 +182,16 @@ Widget build(BuildContext context) {
         'Events Table',
         style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),  // Цвет текста в AppBar
       ),
-      iconTheme: IconThemeData(color: isDarkMode ? Colors.white : Colors.black),  // Цвет иконок в AppBar
-    ),
+      iconTheme: IconThemeData(color: isDarkMode ? Colors.white : Colors.black),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.picture_as_pdf),
+            tooltip: 'Export to PDF',
+            onPressed: _generatePdf,
+            color: isDarkMode ? Colors.white : Colors.black,
+          ),
+        ],
+      ), 
     body: SingleChildScrollView(
       child: Column(
         children: [

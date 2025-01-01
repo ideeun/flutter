@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSDocumentsUsageDescription</key>
+	<string>Мы используем доступ к документам для сохранения PDF-файлов.</string>
+	<key>NSFileProtectionKey</key>
+	<string>NSFileProtectionCompleteUntilFirstUserAuthentication</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
