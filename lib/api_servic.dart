@@ -7,7 +7,7 @@ class Api {
 
   static Future<void> resetPassword(String email) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/reset_password/'),
+      Uri.parse('$baseUrl/send-reset-email/'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'email': email}),
     );
