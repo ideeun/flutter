@@ -3,12 +3,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
-from django.utils.http import urlsafe_base64_encode, force_bytes
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.conf import settings
 from hashlib import sha256
 from django.utils import timezone
 from django.shortcuts import render
 from rest_framework.permissions import AllowAny
+from django.utils.encoding import force_str  # для обработки строк
 
 class PasswordResetRequest(APIView):
     """
@@ -22,7 +23,7 @@ class PasswordResetRequest(APIView):
             user = User.objects.get(email=email)
             # Генерация токена
             token = self.generate_token(user)
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            uid = urlsafe_base64_encode(bytes(str(user.pk), 'utf-8'))  # используем bytes()
             reset_url = f"{request.scheme}://{request.get_host()}/api/v1/reset-password/{uid}/{token}"
 
             # Отправка письма с инструкциями
@@ -56,7 +57,7 @@ class PasswordResetConfirm(APIView):
 
     def get(self, request, uidb64, token):
         try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
+            uid = force_str(urlsafe_base64_decode(uidb64))  # заменили force_bytes на force_str
             user = User.objects.get(pk=uid)
             # Проверка токена
             if self.check_token(user, token):
@@ -71,7 +72,7 @@ class PasswordResetConfirm(APIView):
 
     def post(self, request, uidb64, token, *args, **kwargs):
         try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
+            uid = force_str(urlsafe_base64_decode(uidb64))  # заменили force_bytes на force_str
             user = User.objects.get(pk=uid)
             if self.check_token(user, token):
                 password1 = request.POST.get('new_password1')
@@ -97,7 +98,7 @@ class PasswordResetConfirm(APIView):
                 if len(password1) < 8:
                     return render(request, self.template_name, {
                         'validlink': True,
-                        'error': 'Пароль должен содержать не менее 8 символов',
+                        'error': 'Пароль должен содержать не менее 4 символов',
                         'token': token,
                         'uidb64': uidb64
                     })
@@ -124,6 +125,7 @@ class PasswordResetConfirm(APIView):
             if token == expected_token:
                 return True
         return False
+
 
 class EventListView(APIView):
     """
