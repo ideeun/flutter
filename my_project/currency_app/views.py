@@ -9,7 +9,13 @@ from hashlib import sha256
 from django.utils import timezone
 from django.shortcuts import render
 from rest_framework.permissions import AllowAny
-from django.utils.encoding import force_str  # для обработки строк
+from django.utils.encoding import force_str  
+from .serializers import UserSerializer , CurrencySerializer,EventSerializer
+from .models import User, Currency, Event
+from django.contrib.auth import authenticate
+from currency_app.models import User  
+
+
 
 class PasswordResetRequest(APIView):
     """
@@ -129,11 +135,12 @@ class PasswordResetConfirm(APIView):
 
 class EventListView(APIView):
     """
+    
     Получение списка всех событий, создание нового события и удаление всех событий
     """
     def get(self, request):
         events = Event.objects.all()
-        serializer = EventSerializer(events, many=False)
+        serializer = EventSerializer(events, many=True)  # Добавлено `many=True`
         return Response(serializer.data)
     
     def post(self, request):

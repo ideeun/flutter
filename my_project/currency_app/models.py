@@ -19,7 +19,7 @@ class Event(models.Model):
     
 
     def __str__(self):
-        return f"Event {self.id} - {self.currency} by {self.user.username}"  # Здесь предполагается, что у пользователя есть поле 'username'
+        return f"Event {self.id}"  # Здесь предполагается, что у пользователя есть поле 'username'
 
 # Используйте только одну модель User, если хотите настроить свою модель, обязательно укажите это в settings.py
 class User(AbstractUser):

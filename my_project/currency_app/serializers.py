@@ -11,11 +11,12 @@ class CurrencySerializer(serializers.ModelSerializer):
     class Meta:
         model = Currency
         fields = ['id', 'name']
+        
 # Создание сериализатора для модели Event
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
-        fields = ['id','user','currency', 'quantity', 'exchange_rate', 'total', 'event_type', 'created_at']
+        fields = "__all__"
 
 # API для создания события
 
