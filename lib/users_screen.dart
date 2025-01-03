@@ -15,12 +15,19 @@ class _UsersScreenState extends State<UsersScreen> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController oldPasswordController = TextEditingController();  // Для старого пароля
   dynamic selectedUser; 
-  bool isAdmin = false;// To keep track of the selected user
+  bool _isSuperUser = false;
 
   @override
   void initState() {
     super.initState();
     _fetchUsers();
+  }
+
+  void _checkSuperUserStatus() async {
+    bool isSuperUser = await Api.checkIfSuperUser();
+    setState(() {
+      _isSuperUser = isSuperUser;
+    });
   }
 
   Future<void> _fetchUsers() async {
@@ -193,6 +200,7 @@ class _UsersScreenState extends State<UsersScreen> {
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          if (_isSuperUser) 
           FloatingActionButton(
             heroTag: 'addButton',
             backgroundColor: Color.fromARGB(255, 141, 118, 244),

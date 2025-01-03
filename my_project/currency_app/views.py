@@ -14,9 +14,18 @@ from .serializers import UserSerializer , CurrencySerializer,EventSerializer
 from .models import User, Currency, Event
 from django.contrib.auth import authenticate
 from currency_app.models import User  
+from rest_framework.permissions import IsAuthenticated
 
+class CheckSuperuser(APIView):
+    permission_classes = [IsAuthenticated]  # Пользователь должен быть авторизован
 
-
+    def get(self, request, *args, **kwargs):
+        # Проверяем, является ли пользователь суперпользователем
+        if request.user.is_superuser:
+            return Response({'is_superuser': True}, status=200)
+        else:
+            return Response({'is_superuser': False}, status=200)
+    
 class PasswordResetRequest(APIView):
     """
     Запрос на сброс пароля.

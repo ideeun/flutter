@@ -282,5 +282,21 @@ static Future<Map<String, dynamic>> getCurrencyRate() async {
   }
 }
 
+static Future<bool> checkIfSuperUser() async {
+  final url = '$baseUrl/check-superuser/';  // Замените на свой URL
 
+  // Отправляем запрос с куки или сессией (авторизованный пользователь)
+  final response = await http.get(Uri.parse(url), headers: {
+    // Возможно, вам нужно будет добавить куки или авторизацию в заголовки
+    'Authorization': 'Bearer <your_access_token>',  // Только если вы используете токены
+  });
+
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    return data['is_superuser'] ?? false;
+  } else {
+    print('Failed to load superuser status');
+    return false;
+  }
+}
 }
