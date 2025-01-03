@@ -3,19 +3,24 @@ import 'package:http/http.dart' as http;
 
 class Api {
   static const String baseUrl = 'https://ideeun.pythonanywhere.com/api/';
+  static const String _ratesUrl = 'https://data.fx.kg/api/v1/central';
+  static const String _bearerKey = 'VLWWvUeiJqa0cr7pEjQHt48gcnebzzRuLf1KrY6Jf5060c25';
 
 
   static Future<void> resetPassword(String email) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/send-reset-email/'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'email': email}),
-    );
+  final response = await http.post(
+    Uri.parse('$baseUrl/send-reset-email/'),
+    headers: {'Content-Type': 'application/json'},
+    body: json.encode({'email': email}),
+  );
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to send reset password email');
-    }
+  if (response.statusCode != 200) {
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+    throw Exception('Failed to send reset password email');
   }
+}
+
 
 
   static Future<Map<String, dynamic>> login(String username, String password) async {
@@ -254,4 +259,28 @@ class Api {
       throw Exception('Error editing user: $e');
     }
   }
+
+
+static Future<Map<String, dynamic>> getCurrencyRate() async {
+  // Выполняем GET-запрос напрямую
+  final response = await http.get(
+    Uri.parse(_ratesUrl),
+    headers: {
+      'Authorization': 'Bearer $_bearerKey',
+      'Content-Type': 'application/json',
+    },
+  );
+
+  // Проверяем, успешен ли запрос (код 200)
+  if (response.statusCode == 200) {
+    // Декодируем полученные данные из JSON
+    final data = json.decode(response.body);
+    return data;  // Возвращаем данные
+  } else {
+    // В случае ошибки возвращаем пустую карту
+    return {};
+  }
+}
+
+
 }

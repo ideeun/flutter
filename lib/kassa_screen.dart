@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'tema.dart'; 
 import 'package:provider/provider.dart';
-import 'api_servic.dart';
+import 'api_service.dart';
 import 'dia.dart';
 
 

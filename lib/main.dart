@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/login.dart';
-import 'package:flutter_application_1/users_screen.dart';
-import 'currency.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'custom_screen.dart';
 import 'tema.dart';
 import 'package:provider/provider.dart';
 import 'current_user.dart'; // Импортируем UserProvider

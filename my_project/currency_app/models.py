@@ -9,6 +9,7 @@ class Currency(models.Model):
         return self.name
 
 class Event(models.Model):
+    
     created_at = models.DateTimeField(auto_now_add=True)
     user = models.CharField(max_length=100)    
     currency = models.CharField(max_length=50)

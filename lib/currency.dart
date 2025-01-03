@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'api_servic.dart'; // Импортируем CurrencyApi
+import 'api_service.dart'; // Импортируем CurrencyApi
 import 'dart:convert';
 import 'tema.dart'; 
 import 'package:provider/provider.dart';

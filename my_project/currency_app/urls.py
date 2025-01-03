@@ -1,7 +1,6 @@
 from django.urls import path
 from .views import UserView, CurrencyView, LoginView, EventListView,EventDetailView,PasswordResetRequest, PasswordResetConfirm
 
-
 urlpatterns = [
     path('users/', UserView.as_view(), name='user'),
     path('currencies/', CurrencyView.as_view(), name='currency'),
@@ -12,6 +11,8 @@ urlpatterns = [
     path('users/<int:id>/', UserView.as_view(), name='user_detail'), 
     path('send-reset-email/', PasswordResetRequest.as_view(), name='send_reset_email'),
     path('reset-password/<uidb64>/<token>/', PasswordResetConfirm.as_view(), name='reset_password_confirm'),
+    
+
 ] # Редактирование и удаление пользователя
 
 

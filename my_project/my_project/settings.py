@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-x-syf#*iv07uf9oe%8r(8e72vd3n&s82b-yb5t95t#k3u19+6l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["ideeun.pythonanywhere.com"]
 
 AUTH_USER_MODEL = 'currency_app.User'
 
@@ -150,12 +150,12 @@ LOGGING = {
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.yourmailserver.com'
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your-email@example.com'
-EMAIL_HOST_PASSWORD = 'your-email-password'
-DEFAULT_FROM_EMAIL = 'your-email@example.com'
+EMAIL_HOST_USER = 'gulnuraonolbekova@gmail.com'
+EMAIL_HOST_PASSWORD = 'Gulka2804'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Не забудьте указать FRONTEND_URL для формирования правильных ссылок
 FRONTEND_URL = 'http://yourfrontend.com'

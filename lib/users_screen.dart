@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'api_servic.dart';
+import 'api_service.dart';
 import 'tema.dart'; 
 import 'package:provider/provider.dart';
 
@@ -14,7 +14,8 @@ class _UsersScreenState extends State<UsersScreen> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController oldPasswordController = TextEditingController();  // Для старого пароля
-  dynamic selectedUser; // To keep track of the selected user
+  dynamic selectedUser; 
+  bool isAdmin = false;// To keep track of the selected user
 
   @override
   void initState() {

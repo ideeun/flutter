@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/navigator.dart';
 import 'custom_screen.dart'; // Ваш экран
-import 'api_servic.dart';
+import 'api_service.dart';
 import 'current_user.dart'; // HTTP клиент
 
 class LoginScreen extends StatefulWidget {
@@ -32,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => CustomScreen(userName: userName),
+            builder: (context) => HomeScreen(userName: userName),
           ),
         );
       } catch (e) {

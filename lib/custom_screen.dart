@@ -5,11 +5,12 @@ import 'dart:convert';
 import 'users_screen.dart';
 import 'events_screen.dart';
 import "kassa_screen.dart"; 
-import "api_servic.dart";
+import "api_service.dart";
 import 'login.dart';
 import 'tema.dart'; 
 import 'package:provider/provider.dart';
-// Импортируйте ThemeProvider
+import 'dart:async';
+import 'dart:math';// Импортируйте ThemeProvider
 
 
 class CustomScreen extends StatefulWidget {
@@ -28,12 +29,20 @@ class _CustomScreenState extends State<CustomScreen> {
   // Список валют
   List<Map<String, dynamic>> currencies = [];
   String? selectedCurrencyName;
-  int? selectedCurrencyId; // Идентификатор выбранной валюты
+  int? selectedCurrencyId;
+  late Map<String, dynamic> _currencyData;
+  
+  String? displayedCurrency;
+  String? displayedRate;
+
+  Timer? _currencyTimer;
+ // Идентификатор выбранной валюты
 
   // Контроллеры для текстовых полей
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController exchangeRateController = TextEditingController();
   final TextEditingController totalController = TextEditingController();
+
 
   bool isSaleActive = false; // Состояние для продажи
   bool isBuyActive = false; // Состояние для покупки
@@ -42,14 +51,49 @@ class _CustomScreenState extends State<CustomScreen> {
   void initState() {
     super.initState();
     totalController.text = '0';
-    fetchCurrencies(); // Загрузка валют
+    fetchCurrencies();
+    _loadCurrencyData();
+    startCurrencyTimer();
   }
 
-  // void _toggleTheme() {
-  //   setState(() {
-  //     isDarkMode = !isDarkMode;
-  //   });
-  // }
+  @override
+  void dispose() {
+    _currencyTimer?.cancel();
+    super.dispose();
+  }
+
+  void startCurrencyTimer() {
+    _currencyTimer = Timer.periodic(Duration(seconds: 10), (timer) {
+      setState(() {
+        pickRandomCurrency();
+      });
+    });
+  }
+
+  
+
+  Future<void> _loadCurrencyData() async {
+    final response = await Api.getCurrencyRate(); // Используем ApiService
+    setState(() {
+      // Извлекаем только валюты и курсы, исключая ненужные поля
+      _currencyData = Map.fromEntries(response.entries.where((entry) {
+        return !['id', 'created_at', 'updated_at', 'is_current'].contains(entry.key);
+      }));
+      
+      // Также получаем дату created_at для отображения
+    });
+  }
+  void pickRandomCurrency() {
+    // Get a random currency from the _currencyData
+    List<String> currencies = _currencyData.keys.toList();
+    String randomCurrency = currencies[Random().nextInt(currencies.length)];
+    String rate = _currencyData[randomCurrency].toString();
+
+    setState(() {
+      displayedCurrency = randomCurrency;
+      displayedRate = rate;
+    });
+  }
   Future<void> fetchCurrencies() async {
     try {
       final data = await Api.fetchCurrencies();
@@ -202,22 +246,13 @@ Future<void> clearEvents() async {
     });}
   }
 
-  void _logOut() {
-  // Очистить любые данные о пользователе, если необходимо
-  // Например, вы можете удалить информацию о текущем пользователе из SharedPreferences или других местах хранения данных
-  if (Navigator.canPop(context)) {
-    if (mounted){
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (context) => LoginScreen()),
-  );
-} else {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => LoginScreen()),
-  );
+  void logout(BuildContext context) {
+  Navigator.pushAndRemoveUntil(
+  context,
+  MaterialPageRoute(builder: (context) => LoginScreen()),
+  (Route<dynamic> route) => false,
+);
 }
-  }}
 
 
   @override
@@ -228,8 +263,13 @@ Widget build(BuildContext context) {
   return MaterialApp(
     theme: isDarkMode ? ThemeData.dark() : ThemeData.light(),
     home: Scaffold(
+      backgroundColor: isDarkMode
+            ? Color.fromARGB(255, 15, 22, 36)
+            : const Color.fromARGB(255, 255, 255, 255),
       appBar: AppBar(
-        backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : const Color.fromARGB(255, 237, 232, 232),
+        backgroundColor: isDarkMode
+            ? Color.fromARGB(255, 15, 22, 36)
+            : const Color.fromARGB(255, 255, 255, 255),
         title: Text(
           'HOME',
           style: TextStyle(
@@ -249,9 +289,9 @@ Widget build(BuildContext context) {
         actions: [
           IconButton(
             icon: Icon(isDarkMode ? Icons.wb_sunny : Icons.brightness_3,
-              color: isDarkMode ? Colors.white : Colors.black),
+                color: isDarkMode ? Colors.white : Colors.black),
             onPressed: () {
-              themeProvider.toggleTheme();  // Use ThemeProvider to toggle the theme
+              themeProvider.toggleTheme(); // Use ThemeProvider to toggle the theme
             },
           ),
         ],
@@ -287,7 +327,7 @@ Widget build(BuildContext context) {
                     title: Text('Log Out', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
                     onTap: () {
                       Navigator.pop(context); // Close the drawer
-                      _logOut();  // Log out function
+                      logout(context); // Log out function
                     },
                   ),
                 ],
@@ -298,22 +338,13 @@ Widget build(BuildContext context) {
               child: ListView(
                 children: <Widget>[
                   ListTile(
-                    leading: Icon(Icons.event, color: isDarkMode ? Colors.white : Colors.black),
-                    title: Text('Events', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => EventsScreen()),
-                      );
-                    },
-                  ),
-                  ListTile(
                     leading: Icon(Icons.currency_exchange, color: isDarkMode ? Colors.white : Colors.black),
                     title: Text('Currencies', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => CurrencyTableScreen(onCurrencyAdded: fetchCurrencies,)),
+                        MaterialPageRoute(
+                            builder: (context) => CurrencyTableScreen(onCurrencyAdded: fetchCurrencies)),
                       );
                     },
                   ),
@@ -361,16 +392,26 @@ Widget build(BuildContext context) {
       body: OrientationBuilder(
         builder: (context, orientation) {
           bool isPortrait = orientation == Orientation.portrait;
-
           return Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: isDarkMode 
-                  ? [Color.fromARGB(255, 4, 5, 33), Color.fromARGB(255, 15, 17, 62), Color.fromARGB(255, 64, 77, 213)]
-                  : [Color.fromARGB(255, 41, 47, 120), Color.fromARGB(255, 74, 77, 121), Color.fromARGB(255, 188, 190, 207)],
+                colors: isDarkMode
+                    ? [
+                        Color.fromARGB(255, 15, 22, 36),
+                        Color.fromARGB(255, 15, 22, 31),
+                        Color.fromARGB(255, 28, 39, 163),
+                        Color.fromARGB(255, 61, 65, 199),
+                        Color.fromARGB(255, 11, 14, 68),
+                        Color.fromARGB(255, 15, 22, 36)                      ]
+                    : [
+                        Color.fromARGB(255, 41, 47, 120),
+                        Color.fromARGB(255, 74, 77, 121),
+                        Color.fromARGB(255, 188, 190, 207)
+                      ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
+              
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -378,6 +419,7 @@ Widget build(BuildContext context) {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (isPortrait)
+                  SizedBox(height: 20),
                     // Portrait mode specific widgets
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -393,13 +435,19 @@ Widget build(BuildContext context) {
                                 gradient: LinearGradient(
                                   colors: isSaleActive
                                       ? [const Color.fromARGB(255, 51, 5, 235), const Color.fromARGB(255, 20, 162, 233)]
-                                      : [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.1)],
+                                      : [const Color.fromARGB(255, 157, 153, 153).withOpacity(0.2), const Color.fromARGB(255, 147, 145, 145).withOpacity(0.2)],
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                 ),
                                 borderRadius: BorderRadius.circular(10),
                                 boxShadow: isSaleActive
-                                    ? [BoxShadow(color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)]
+                                    ? [
+                                        BoxShadow(
+                                          color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6),
+                                          blurRadius: 10,
+                                          spreadRadius: 2
+                                        )
+                                      ]
                                     : [],
                               ),
                               child: Icon(
@@ -427,7 +475,13 @@ Widget build(BuildContext context) {
                                 ),
                                 borderRadius: BorderRadius.circular(10),
                                 boxShadow: isBuyActive
-                                    ? [BoxShadow(color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)]
+                                    ? [
+                                        BoxShadow(
+                                          color: const Color.fromARGB(255, 24, 8, 240).withOpacity(0.6),
+                                          blurRadius: 10,
+                                          spreadRadius: 2
+                                        )
+                                      ]
                                     : [],
                               ),
                               child: Icon(
@@ -444,7 +498,7 @@ Widget build(BuildContext context) {
                   InputDecorator(
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.1),
+                      fillColor: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.1),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
                         borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
@@ -466,7 +520,7 @@ Widget build(BuildContext context) {
                           child: Text(
                             currency['name'],
                             style: TextStyle(
-                              color: textColor,
+                              color: isDarkMode? Colors.white : Colors.black,
                               fontSize: 16,
                             ),
                           ),
@@ -480,7 +534,7 @@ Widget build(BuildContext context) {
                       hint: Text(
                         'Select Currency',
                         style: TextStyle(
-                          color: textColor.withOpacity(0.6),
+                          color: isDarkMode? textColor.withOpacity(0.6) : Color.fromARGB(0, 0, 0, 0).withOpacity(0.6),
                           fontSize: 14,
                         ),
                       ),
@@ -489,81 +543,86 @@ Widget build(BuildContext context) {
                     ),
                   ),
                   SizedBox(height: 20),
-                TextField(
-                  controller: quantityController,
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(color: textColor),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
-                    hintText: 'Quantity',
-                    hintStyle: TextStyle(color: textColor.withOpacity(0.6)),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  onChanged: (value) {
-                    calculateTotal();
-                  },
-                ),
-                SizedBox(height: 20),
-                TextField(
-                  controller: exchangeRateController,
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(color: textColor),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
-                    hintText: 'Exchange rate',
-                    hintStyle: TextStyle(color: textColor.withOpacity(0.6)),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  onChanged: (value) {
-                    calculateTotal();
-                  },
-                ),
-                SizedBox(height: 20),
-                TextField(
-                  controller: totalController,
-                  readOnly: true,
-                  style: TextStyle(color: textColor),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
-                    hintText: 'Total',
-                    hintStyle: TextStyle(color: textColor.withOpacity(1)),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-                Center(
-                  child: ElevatedButton(
-                    onPressed: addEntry,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 106, 114, 249),
-                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                      shape: RoundedRectangleBorder(
+                  TextField(
+                    controller: quantityController,
+                    keyboardType: TextInputType.number,
+                    style: TextStyle(color: textColor),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.1),
+                      hintText: 'Quantity',
+                      hintStyle: TextStyle(color: isDarkMode? textColor.withOpacity(0.6) : Color.fromARGB(0, 0, 0, 0).withOpacity(0.6),
+),
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
                       ),
                     ),
-                    child: Text('Submit'),
+                    onChanged: (value) {
+                      calculateTotal();
+                    },
                   ),
-                ),
-                  // Other widgets...
-                ],
+                  SizedBox(height: 20),
+                  TextField(
+                    controller: exchangeRateController,
+                    keyboardType: TextInputType.number,
+                    style: TextStyle(color: textColor),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.1),
+                      hintText: 'Exchange rate',
+                      hintStyle: TextStyle(                          
+                      color: isDarkMode? textColor.withOpacity(0.6) : Color.fromARGB(0, 0, 0, 0).withOpacity(0.6),
+),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      calculateTotal();
+                    },
+                  ),
+                  SizedBox(height: 20),
+                  TextField(
+                    controller: totalController,
+                    readOnly: true,
+                    style: TextStyle(color :isDarkMode? textColor.withOpacity(1) : Colors.black.withOpacity(1)),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.1),
+                      hintText: 'Total',
+                      hintStyle: TextStyle(
+                      color: isDarkMode? textColor.withOpacity(1) : Colors.black.withOpacity(1),
+),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Center(
+                    child: ElevatedButton(
+                      onPressed: addEntry,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 106, 114, 249),
+                        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: Text('Submit'),
+                    ),
+                  ),  // Add space to push it down
+      
+               ],
               ),
             ),
           );
         },
-      ),
+        ),
     ),
   );
 }
-  }
+}
