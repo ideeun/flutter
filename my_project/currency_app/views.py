@@ -16,25 +16,18 @@ from django.contrib.auth import authenticate
 from currency_app.models import User  
 from rest_framework.permissions import IsAuthenticated
 
-class CheckSuperuser(APIView):
-    permission_classes = [IsAuthenticated]  # Пользователь должен быть авторизован
-
-    def get(self, request, *args, **kwargs):
-        # Извлекаем имя пользователя из запроса
-        username = request.query_params.get('username', None)
+class CheckSuperuserView(APIView):
+    def get(self, request, username, *args, **kwargs):
+        try:
+            user = User.objects.get(username=username)  # Ищем пользователя по имени
+            if user.is_superuser:
+                return Response({'is_superuser': True}, status=200)
+            else:
+                return Response({'is_superuser': False}, status=200)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=404)
         
-        if username:
-            try:
-                user = User.objects.get(username=username)  # Находим пользователя по имени
-                if user.is_superuser:
-                    return Response({'is_superuser': True}, status=200)
-                else:
-                    return Response({'is_superuser': False}, status=200)
-            except User.DoesNotExist:
-                return Response({'detail': 'User not found'}, status=404)
-        else:
-            return Response({'detail': 'Username parameter is required'}, status=400)
-    
+
 class PasswordResetRequest(APIView):
     """
     Запрос на сброс пароля.

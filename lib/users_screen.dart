@@ -31,6 +31,11 @@ class _UsersScreenState extends State<UsersScreen> {
     setState(() {
       _isSuperUser = isSuperuser;
     });
+    if (isSuperuser) {
+    print('$username is a superuser.');
+  } else {
+    print('$username is not a superuser.');
+  }
   }
 
   Future<void> _fetchUsers() async {
