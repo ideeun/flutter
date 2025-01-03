@@ -25,6 +25,7 @@ class CheckSuperuser(APIView):
             return Response({'is_superuser': True}, status=200)
         else:
             return Response({'is_superuser': False}, status=200)
+        
     
 class PasswordResetRequest(APIView):
     """

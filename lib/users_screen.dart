@@ -21,6 +21,7 @@ class _UsersScreenState extends State<UsersScreen> {
   void initState() {
     super.initState();
     _fetchUsers();
+    _checkSuperUserStatus();
   }
 
   void _checkSuperUserStatus() async {

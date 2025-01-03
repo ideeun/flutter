@@ -23,7 +23,7 @@ class EventSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id','username', 'email','password']  # Поля для работы
+        fields = "__all__" # Поля для работы
         extra_kwargs = {'password': {'write_only':False }}  # Пароль только для записи
 
     def create(self, validated_data):
