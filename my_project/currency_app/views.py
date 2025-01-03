@@ -20,12 +20,20 @@ class CheckSuperuser(APIView):
     permission_classes = [IsAuthenticated]  # Пользователь должен быть авторизован
 
     def get(self, request, *args, **kwargs):
-        # Проверяем, является ли пользователь суперпользователем
-        if request.user.is_superuser:
-            return Response({'is_superuser': True}, status=200)
-        else:
-            return Response({'is_superuser': False}, status=200)
+        # Извлекаем имя пользователя из запроса
+        username = request.query_params.get('username', None)
         
+        if username:
+            try:
+                user = User.objects.get(username=username)  # Находим пользователя по имени
+                if user.is_superuser:
+                    return Response({'is_superuser': True}, status=200)
+                else:
+                    return Response({'is_superuser': False}, status=200)
+            except User.DoesNotExist:
+                return Response({'detail': 'User not found'}, status=404)
+        else:
+            return Response({'detail': 'Username parameter is required'}, status=400)
     
 class PasswordResetRequest(APIView):
     """

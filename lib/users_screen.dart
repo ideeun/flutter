@@ -25,9 +25,11 @@ class _UsersScreenState extends State<UsersScreen> {
   }
 
   void _checkSuperUserStatus() async {
-    bool isSuperUser = await Api.checkIfSuperUser();
+    String username = 'admin';  // Имя пользователя, которое вы хотите проверить
+  bool isSuperuser = await Api.checkIfSuperUser(username);
+  
     setState(() {
-      _isSuperUser = isSuperUser;
+      _isSuperUser = isSuperuser;
     });
   }
 
