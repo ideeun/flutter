@@ -36,7 +36,7 @@ class CheckPasswordView(APIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=404)
         
-        
+
 class CheckSuperuserView(APIView):
     def get(self, request, username, *args, **kwargs):
         try:
@@ -261,9 +261,12 @@ class UserView(APIView):
 
     def post(self, request):
         """Добавление нового пользователя."""
-        serializer = UserSerializer(data=request.data)
-
         # Проверка данных
+        if 'password' in request.data:
+            # Хэшируем пароль перед сохранением
+            request.data['password'] = make_password(request.data['password'])
+
+        serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response({'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
