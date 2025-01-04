@@ -10,6 +10,7 @@ import 'dart:async';
 import 'current_user.dart';
 
 class CustomScreen extends StatefulWidget {
+
   // final String userName;
 
   // CustomScreen({required this.userName});

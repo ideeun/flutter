@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/navigator.dart';
-import 'custom_screen.dart'; // Ваш экран
 import 'api_service.dart';
 import 'current_user.dart';
 import 'package:provider/provider.dart';
-import 'current_user.dart';  // HTTP клиент
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -122,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide(color: const Color.fromARGB(255, 141, 131, 255)),
+                          borderSide: BorderSide(color: const Color.fromRGBO(141, 131, 255, 1)),
                         ),
                       ),
                       validator: (value) {

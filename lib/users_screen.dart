@@ -325,7 +325,7 @@ class _UsersScreenState extends State<UsersScreen> {
         child: Icon(Icons.add),
       ),
     SizedBox(height: 10),
-    if (selectedUser != null)
+    if (selectedUser != null && (_isSuperUser || selectedUser['username'] == currentUser) )
       FloatingActionButton(
         heroTag: 'editButton',
         backgroundColor: Colors.blue,
@@ -335,7 +335,7 @@ class _UsersScreenState extends State<UsersScreen> {
         child: Icon(Icons.edit),
       ),
     SizedBox(height: 10),
-    if (selectedUser != null)
+    if (selectedUser != null && _isSuperUser)
       FloatingActionButton(
         heroTag: 'deleteButton',
         backgroundColor: Colors.red,

@@ -2,15 +2,15 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class Api {
-  static const String baseUrl = 'https://ideeun.pythonanywhere.com/api/';
-  // static const String baseUrl = 'http://127.0.0.1:5050/api';
+  // static const String baseUrl = 'https://ideeun.pythonanywhere.com/api/';
+  static const String baseUrl = 'http://127.0.0.1:5050/api';
   static const String _ratesUrl = 'https://data.fx.kg/api/v1/central';
   static const String _bearerKey = 'VLWWvUeiJqa0cr7pEjQHt48gcnebzzRuLf1KrY6Jf5060c25';
 
 
   static Future<void> resetPassword(String email) async {
   final response = await http.post(
-    Uri.parse('$baseUrl/send-reset-email/'),
+    Uri.parse('$baseUrl/password-reset/'),
     headers: {'Content-Type': 'application/json'},
     body: json.encode({'email': email}),
   );

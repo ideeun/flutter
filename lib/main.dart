@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/login.dart';
 import 'tema.dart';
 import 'package:provider/provider.dart';
-import 'current_user.dart'; // Импортируем UserProvider
+import 'current_user.dart'; 
 
 void main() {
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
-        ChangeNotifierProvider(create: (context) => UserManager()), // Добавляем UserProvider
+        ChangeNotifierProvider(create: (context) => UserManager()),
       ],
       child: MyApp(),
     ),

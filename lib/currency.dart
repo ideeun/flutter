@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'api_service.dart'; // Импортируем CurrencyApi
-import 'dart:convert';
 import 'tema.dart'; 
 import 'package:provider/provider.dart';
-import 'custom_screen.dart';
 
 class CurrencyTableScreen extends StatefulWidget {
   final Function() onCurrencyAdded;
@@ -154,7 +152,7 @@ Widget build(BuildContext context) {
                   color: isSelected
                       ? const Color.fromARGB(255, 136, 138, 246)
                       : (isDarkMode
-                          ? const Color.fromARGB(255, 120, 120, 120)
+                          ? const Color.fromARGB(255, 130, 130, 130)
                               .withOpacity(0.3)
                           : const Color.fromARGB(255, 230, 230, 230)
                               .withOpacity(0.8)),  // Изменение фона контейнера
