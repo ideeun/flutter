@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'tema.dart'; 
 import 'package:provider/provider.dart';
+import 'current_user.dart';
 
 class UsersScreen extends StatefulWidget {
   @override
@@ -16,16 +17,19 @@ class _UsersScreenState extends State<UsersScreen> {
   final TextEditingController oldPasswordController = TextEditingController();  // Для старого пароля
   dynamic selectedUser; 
   bool _isSuperUser = false;
+  String currentUser = UserManager().currentUser;
+
 
   @override
   void initState() {
     super.initState();
     _fetchUsers();
     _checkSuperUserStatus();
+    // _checkSuperUserStatus();
   }
 
   void _checkSuperUserStatus() async {
-    String username = 'admin';  // Имя пользователя, которое вы хотите проверить
+    String username = currentUser;  // Имя пользователя, которое вы хотите проверить
   bool isSuperuser = await Api.checkIfSuperUser(username);
   
     setState(() {
@@ -135,9 +139,114 @@ class _UsersScreenState extends State<UsersScreen> {
     );
   }
 
+  void _showEditUserDialog(dynamic user) {
+  // Предзаполнение полей данными выбранного пользователя
+  usernameController.text = user['username'];
+  emailController.text = user['email'];
+  passwordController.clear(); // Поле для нового пароля
+  oldPasswordController.clear(); // Поле для ввода старого пароля
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Edit User'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: usernameController,
+                decoration: InputDecoration(labelText: 'Username'),
+              ),
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(labelText: 'Email'),
+              ),
+              TextField(
+                controller: oldPasswordController,
+                obscureText: true,
+                decoration: InputDecoration(labelText: 'Old Password (if changing password)'),
+              ),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: InputDecoration(labelText: 'New Password (optional)'),
+              ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () async {
+              final username = usernameController.text;
+              final email = emailController.text;
+              final oldPassword = oldPasswordController.text;
+              final newPassword = passwordController.text;
+
+              if (username.isEmpty || email.isEmpty) {
+                _showSnackbar('Username and email cannot be empty.');
+                return;
+              }
+
+              if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$").hasMatch(email)) {
+                _showSnackbar('Please enter a valid email address.');
+                return;
+              }
+
+              // Проверяем старый пароль через API, если пользователь хочет сменить пароль
+              if (newPassword.isNotEmpty) {
+                try {
+                  final response = await Api.checkPassword(
+                    username: user['username'],
+                    oldPassword: oldPassword,
+                  );
+
+                  if (!response['is_valid']) {
+                    _showSnackbar('Old password is incorrect.');
+                    return;
+                  }
+                } catch (e) {
+                  _showSnackbar('Error verifying old password: $e');
+                  return;
+                }
+              }
+
+              try {
+                // Обновляем данные пользователя
+                await Api.updateUser(
+                  user['id'],
+                  username: username,
+                  email: email,
+                  newPassword: newPassword.isNotEmpty ? newPassword : null,
+                );
+
+                _fetchUsers(); // Обновляем список пользователей
+                _showSnackbar('User updated successfully!');
+                Navigator.of(context).pop();
+              } catch (e) {
+                _showSnackbar('Error: $e');
+              }
+            },
+            child: Text('Save'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Cancel'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+
     final isDarkMode = themeProvider.isDarkMode;  // Проверка на темную тему
 
     return Scaffold(
@@ -205,33 +314,44 @@ class _UsersScreenState extends State<UsersScreen> {
               ),
       ),
       floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (_isSuperUser) 
-          FloatingActionButton(
-            heroTag: 'addButton',
-            backgroundColor: Color.fromARGB(255, 141, 118, 244),
-            onPressed: _showAddUserDialog,
-            child: Icon(Icons.add),
-          ),
-          SizedBox(height: 10),
-          if (selectedUser != null)
-            FloatingActionButton(
-              heroTag: 'deleteButton',
-              backgroundColor: Colors.red,
-              onPressed: () {
-                if (selectedUser != null) {
-                  _deleteUser(selectedUser['id']);
-                  setState(() {
-                    selectedUser = null; 
-                  });
-                }
-              },
-              child: Icon(Icons.delete),
-            ),
-        ],
+  mainAxisAlignment: MainAxisAlignment.end,
+  crossAxisAlignment: CrossAxisAlignment.end,
+  children: [
+    if (_isSuperUser)
+      FloatingActionButton(
+        heroTag: 'addButton',
+        backgroundColor: Color.fromARGB(255, 141, 118, 244),
+        onPressed: _showAddUserDialog,
+        child: Icon(Icons.add),
       ),
+    SizedBox(height: 10),
+    if (selectedUser != null)
+      FloatingActionButton(
+        heroTag: 'editButton',
+        backgroundColor: Colors.blue,
+        onPressed: () {
+          _showEditUserDialog(selectedUser);
+        },
+        child: Icon(Icons.edit),
+      ),
+    SizedBox(height: 10),
+    if (selectedUser != null)
+      FloatingActionButton(
+        heroTag: 'deleteButton',
+        backgroundColor: Colors.red,
+        onPressed: () {
+          if (selectedUser != null) {
+            _deleteUser(selectedUser['id']);
+            setState(() {
+              selectedUser = null; 
+            });
+          }
+        },
+        child: Icon(Icons.delete),
+      ),
+  ],
+),
+
     );
   }
 }

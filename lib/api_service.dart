@@ -241,22 +241,49 @@ class Api {
     }
   }
 
-  static Future<void> editUser(int userId, String username, String email, String password) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/users/$userId/'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'username': username,
-          'email': email,
-          'password': password,
-        }),
-      );
-      if (response.statusCode != 200) {
-        throw Exception('Failed to edit user');
-      }
-    } catch (e) {
-      throw Exception('Error editing user: $e');
+  static Future<void> updateUser(int userId, {String? username, String? email, String? newPassword}) async {
+  final response = await http.put(
+    Uri.parse('$baseUrl/users/$userId/'),
+    body: {
+      if (username != null) 'username': username,
+      if (email != null) 'email': email,
+      if (newPassword != null) 'password': newPassword,
+    },
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('Failed to update user.');
+  }
+}
+
+static Future<Map<String, dynamic>> checkPassword({
+    required String username,
+    required String oldPassword,
+  }) async {
+    final url = Uri.parse('$baseUrl/check-password/'); // Путь к вашему API
+
+    // Создание тела запроса
+    final body = json.encode({
+      'username': username,
+      'old_password': oldPassword,
+    });
+
+    // Отправка POST-запроса без токенов
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json', // Указываем, что тело запроса в формате JSON
+      },
+      body: body,
+    );
+
+    // Проверка ответа
+    if (response.statusCode == 200) {
+      // Если сервер ответил с успешным статусом, возвращаем данные
+      return json.decode(response.body);
+    } else {
+      // Если произошла ошибка, выбрасываем исключение
+      throw Exception('Failed to verify old password');
     }
   }
 

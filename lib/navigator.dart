@@ -6,9 +6,9 @@ import 'tema.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
-  final String userName;
+  // final String userName;
 
-  HomeScreen({required this.userName});
+  // HomeScreen({required this.userName});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -21,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _pages.add(CustomScreen(userName: widget.userName));
+    _pages.add(CustomScreen());
     _pages.add(EventsScreen());
     _pages.add(CurrencyWidget());
   }

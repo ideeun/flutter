@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 
-class CurrentUser with ChangeNotifier {
-  String? _username;
+class UserManager with ChangeNotifier {
+  static final UserManager _instance = UserManager._internal();
+  String _currentUser = '';
 
-  String? get username => _username;
+  // Приватный конструктор для синглтона
+  UserManager._internal();
+
+  // Фабричный метод для доступа к экземпляру
+  factory UserManager() {
+    return _instance;
+  }
 
   // Устанавливаем текущего пользователя
-  void setUser(String username) {
-    _username = username;
-    notifyListeners(); // Уведомляем всех слушателей об изменении
+  void setCurrentUser(String user) {
+    _currentUser = user;
+    notifyListeners(); // Уведомляем слушателей об изменении
   }
 
-  // Убираем текущего пользователя (выход)
-  void logout() {
-    _username = null;
-    notifyListeners();
-  }
+  // Получаем текущего пользователя
+  String get currentUser => _currentUser;
 }

@@ -15,6 +15,29 @@ from .models import User, Currency, Event
 from django.contrib.auth import authenticate
 from currency_app.models import User  
 from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth.hashers import check_password
+
+
+class CheckPasswordView(APIView):
+    """
+    Проверка старого пароля пользователя
+    """
+    def post(self, request):
+        username = request.data.get('username')
+        old_password = request.data.get('old_password')
+
+        try:
+            # Получаем пользователя
+            user = User.objects.get(username=username)
+
+            # Проверяем старый пароль
+            if check_password(old_password, user.password):
+                return Response({'message': 'Пароль верен'}, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'Неверный пароль'}, status=status.HTTP_400_BAD_REQUEST)
+        except User.DoesNotExist:
+            return Response({'error': 'Пользователь не найден'}, status=status.HTTP_404_NOT_FOUND)
+
 
 class CheckSuperuserView(APIView):
     def get(self, request, username, *args, **kwargs):

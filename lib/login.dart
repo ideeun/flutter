@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/navigator.dart';
 import 'custom_screen.dart'; // Ваш экран
 import 'api_service.dart';
-import 'current_user.dart'; // HTTP клиент
+import 'current_user.dart';
+import 'package:provider/provider.dart';
+import 'current_user.dart';  // HTTP клиент
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -28,12 +30,12 @@ class _LoginScreenState extends State<LoginScreen> {
         final response = await Api.login(username, password);
         final userName = response['username'];
         print('Logged in as $userName');
-
+        Provider.of<UserManager>(context, listen: false).setCurrentUser(userName);
         // Переход на CustomScreen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomeScreen(userName: userName),
+            builder: (context) => HomeScreen(),
           ),
         );
       } catch (e) {

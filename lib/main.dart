@@ -9,7 +9,7 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
-        ChangeNotifierProvider(create: (context) => CurrentUser()), // Добавляем UserProvider
+        ChangeNotifierProvider(create: (context) => UserManager()), // Добавляем UserProvider
       ],
       child: MyApp(),
     ),

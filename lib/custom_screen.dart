@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
 import 'currency.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'users_screen.dart';
-import 'events_screen.dart';
 import "kassa_screen.dart"; 
 import "api_service.dart";
 import 'login.dart';
 import 'tema.dart'; 
 import 'package:provider/provider.dart';
 import 'dart:async';
-import 'dart:math';// Импортируйте ThemeProvider
-
+import 'current_user.dart';
 
 class CustomScreen extends StatefulWidget {
-  final String userName;
+  // final String userName;
 
-  CustomScreen({required this.userName});
+  // CustomScreen({required this.userName});
 
   @override
   _CustomScreenState createState() => _CustomScreenState();
@@ -32,10 +28,6 @@ class _CustomScreenState extends State<CustomScreen> {
   int? selectedCurrencyId;
   late Map<String, dynamic> _currencyData;
   
-  String? displayedCurrency;
-  String? displayedRate;
-
-  Timer? _currencyTimer;
  // Идентификатор выбранной валюты
 
   // Контроллеры для текстовых полей
@@ -45,55 +37,20 @@ class _CustomScreenState extends State<CustomScreen> {
 
 
   bool isSaleActive = false; // Состояние для продажи
-  bool isBuyActive = false; // Состояние для покупки
+  bool isBuyActive = false; 
+  String currentUser = UserManager().currentUser;
+// Состояние для покупки
 
   @override
   void initState() {
     super.initState();
     totalController.text = '0';
     fetchCurrencies();
-    _loadCurrencyData();
-    startCurrencyTimer();
-  }
-
-  @override
-  void dispose() {
-    _currencyTimer?.cancel();
-    super.dispose();
-  }
-
-  void startCurrencyTimer() {
-    _currencyTimer = Timer.periodic(Duration(seconds: 10), (timer) {
-      setState(() {
-        pickRandomCurrency();
-      });
-    });
   }
 
   
-
-  Future<void> _loadCurrencyData() async {
-    final response = await Api.getCurrencyRate(); // Используем ApiService
-    setState(() {
-      // Извлекаем только валюты и курсы, исключая ненужные поля
-      _currencyData = Map.fromEntries(response.entries.where((entry) {
-        return !['id', 'created_at', 'updated_at', 'is_current'].contains(entry.key);
-      }));
-      
-      // Также получаем дату created_at для отображения
-    });
-  }
-  void pickRandomCurrency() {
-    // Get a random currency from the _currencyData
-    List<String> currencies = _currencyData.keys.toList();
-    String randomCurrency = currencies[Random().nextInt(currencies.length)];
-    String rate = _currencyData[randomCurrency].toString();
-
-    setState(() {
-      displayedCurrency = randomCurrency;
-      displayedRate = rate;
-    });
-  }
+  
+  
   Future<void> fetchCurrencies() async {
     try {
       final data = await Api.fetchCurrencies();
@@ -162,13 +119,14 @@ Future<void> clearEvents() async {
 
   // Функция для добавления новой записи
   Future<void> addEntry() async {
+
     if (selectedCurrencyName == null) {
       _showErrorDialog('Please select a currency');
       return;
     }
 
     final event = {
-      'user': widget.userName,
+      'user': currentUser,
       'currency': selectedCurrencyName,
       'quantity': double.tryParse(quantityController.text),
       'exchange_rate': double.tryParse(exchangeRateController.text),
