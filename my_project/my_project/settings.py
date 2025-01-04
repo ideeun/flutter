@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-x-syf#*iv07uf9oe%8r(8e72vd3n&s82b-yb5t95t#k3u19+6l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["ideeun.pythonanywhere.com"]
+ALLOWED_HOSTS = ["ideeun.pythonanywhere.com", "*"]
 
 AUTH_USER_MODEL = 'currency_app.User'
 

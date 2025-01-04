@@ -166,6 +166,9 @@ class UserView(APIView):
             return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
         # Если передан новый пароль, хэшируем его
+        if 'password' in request.data:
+            user.set_password(request.data['password'])
+
         # Обновление данных пользователя
         serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():

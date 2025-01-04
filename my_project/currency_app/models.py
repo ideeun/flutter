@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+from django.contrib.auth.hashers import make_password
+
 
 class Currency(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -29,6 +31,13 @@ class User(AbstractUser):
     name = models.CharField(max_length=255, blank=True, null=True)
     is_super_user = models.BooleanField(default=False)
 
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+        
+    def save(self, *args, **kwargs):
+        if not self.password.startswith(('pbkdf2_sha256$', 'bcrypt$', 'argon2')):
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.email
