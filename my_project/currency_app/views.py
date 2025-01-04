@@ -16,6 +16,8 @@ from django.contrib.auth import authenticate
 from currency_app.models import User  
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.hashers import make_password
+
 
 
 class CheckPasswordView(APIView):
@@ -36,7 +38,7 @@ class CheckPasswordView(APIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=404)
         
-
+        
 class CheckSuperuserView(APIView):
     def get(self, request, username, *args, **kwargs):
         try:
@@ -261,12 +263,9 @@ class UserView(APIView):
 
     def post(self, request):
         """Добавление нового пользователя."""
-        # Проверка данных
-        if 'password' in request.data:
-            # Хэшируем пароль перед сохранением
-            request.data['password'] = make_password(request.data['password'])
-
         serializer = UserSerializer(data=request.data)
+
+        # Проверка данных
         if serializer.is_valid():
             serializer.save()
             return Response({'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
@@ -281,9 +280,12 @@ class UserView(APIView):
         except User.DoesNotExist:
             return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Если передан новый пароль, хэшируем его
+        if 'password' in request.data:
+            request.data['password'] = make_password(request.data['password'])
+
         # Обновление данных пользователя
         serializer = UserSerializer(user, data=request.data, partial=True)
-
         if serializer.is_valid():
             serializer.save()
             return Response({'message': 'User updated successfully'}, status=status.HTTP_200_OK)
