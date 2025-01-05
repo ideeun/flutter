@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class Api {
-  // static const String baseUrl = 'https://ideeun.pythonanywhere.com/api/';
-  static const String baseUrl = 'http://127.0.0.1:5050/api';
+  static const String baseUrl = 'https://ideeun.pythonanywhere.com/api/';
+  // static const String baseUrl = 'http://127.0.0.1:5050/api';
   static const String _ratesUrl = 'https://data.fx.kg/api/v1/central';
   static const String _bearerKey = 'VLWWvUeiJqa0cr7pEjQHt48gcnebzzRuLf1KrY6Jf5060c25';
 
@@ -52,7 +52,8 @@ class Api {
     try {
       final response = await http.get(Uri.parse('$baseUrl/currencies/'));
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final decodedBody = utf8.decode(response.bodyBytes);
+        final List<dynamic> data = json.decode(decodedBody);
         return data.map((currency) => {
           'id': currency['id'], 
           'name': currency['name'],
@@ -153,9 +154,10 @@ class Api {
   static Future<List<Map<String, dynamic>>> fetchEvents() async {
   try {
     final response = await http.get(Uri.parse('$baseUrl/events/'));
+    final decodedBody = utf8.decode(response.bodyBytes);
 
     if (response.statusCode == 200) {
-      List data = json.decode(response.body); // Декодируем данные
+      List data = json.decode(decodedBody); // Декодируем данные
       return data.map((event) => event as Map<String, dynamic>).toList(); // Преобразуем каждый элемент в Map<String, dynamic>
     } else {
       throw Exception('Failed to load events');
@@ -199,8 +201,10 @@ class Api {
   static Future<List<dynamic>> fetchUsers() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/users/'));
+      final decodedBody = utf8.decode(response.bodyBytes);
+
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        return json.decode(decodedBody);
       } else {
         throw Exception('Failed to load users');
       }

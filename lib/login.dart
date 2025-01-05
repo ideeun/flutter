@@ -72,7 +72,26 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 3, 12, 34),
+      backgroundColor: const Color.fromARGB(255, 7, 17, 41),
+      appBar: _isResetPassword
+        ? AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.chevron_left_outlined,
+              color: Colors.white,
+              size: 35),
+            
+              onPressed: () {
+                setState(() {
+                  _isResetPassword = false;
+                  _errorMessage = null;
+                  _infoMessage = null;
+                });
+              },
+            ),
+          )
+        : null,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -82,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ShaderMask(
               shaderCallback: (bounds) {
                 return LinearGradient(
-                  colors: [const Color.fromARGB(255, 113, 21, 193), const Color.fromARGB(255, 66, 162, 194), const Color.fromARGB(255, 245, 43, 110)],
+                  colors: [const Color.fromARGB(255, 179, 81, 239), const Color.fromARGB(255, 66, 162, 194), const Color.fromARGB(255, 68, 87, 174), const Color.fromARGB(255, 245, 43, 110)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ).createShader(bounds);
@@ -110,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         labelText: 'Username',
                         labelStyle: TextStyle(
                           foreground: Paint()..shader = LinearGradient(
-                            colors: [const Color.fromARGB(255, 113, 21, 193), const Color.fromARGB(255, 66, 162, 194), const Color.fromARGB(255, 245, 43, 110)],
+                            colors: [const Color.fromARGB(255, 86, 58, 230), const Color.fromARGB(255, 77, 164, 193), const Color.fromARGB(255, 255, 5, 88)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ).createShader(Rect.fromLTWH(0, 0, 200, 50)),
@@ -120,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide(color: const Color.fromRGBO(141, 131, 255, 1)),
+                          borderSide: BorderSide(color: const Color.fromARGB(255, 112, 130, 251)),
                         ),
                       ),
                       validator: (value) {
@@ -138,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         labelText: 'Password',
                         labelStyle: TextStyle(
                           foreground: Paint()..shader = LinearGradient(
-                            colors: [const Color.fromARGB(255, 113, 21, 193), const Color.fromARGB(255, 66, 162, 194), const Color.fromARGB(255, 245, 43, 110)],
+                            colors: [const Color.fromARGB(255, 106, 116, 255), const Color.fromARGB(255, 22, 188, 244), const Color.fromARGB(255, 245, 43, 110)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ).createShader(Rect.fromLTWH(0, 0, 200, 50)),
@@ -148,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide(color: const Color.fromARGB(255, 141, 131, 255)),
+                          borderSide: BorderSide(color: const Color.fromARGB(255, 112, 130, 251)),
                         ),
                       ),
                       obscureText: true,
@@ -176,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ElevatedButton(
                       onPressed: _login,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 76, 8, 235),
+                        backgroundColor: const Color.fromARGB(255, 63, 83, 171),
                         foregroundColor: Colors.white,
                       ),
                       child: Text('Login'),
@@ -192,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       child: Text(
                         'Forgot Password?',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: const Color.fromARGB(255, 5, 95, 249)),
                       ),
                     ),
                   if (_isResetPassword) ...[
@@ -203,7 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         labelText: 'Email',
                         labelStyle: TextStyle(
                           foreground: Paint()..shader = LinearGradient(
-                            colors: [const Color.fromARGB(255, 113, 21, 193), const Color.fromARGB(255, 66, 162, 194), const Color.fromARGB(255, 245, 43, 110)],
+                            colors: [const Color.fromARGB(255, 86, 111, 255), const Color.fromARGB(255, 150, 98, 215), const Color.fromARGB(255, 245, 43, 110)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ).createShader(Rect.fromLTWH(0, 0, 200, 50)),
@@ -223,11 +242,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-                    SizedBox(height: 16.0),
+                    SizedBox(height: 25),
                     ElevatedButton(
                       onPressed: _resetPassword,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 76, 8, 235),
+                        backgroundColor: const Color.fromARGB(255, 63, 83, 171),
                         foregroundColor: Colors.white,
                       ),
                       child: Text('Send Reset Link'),

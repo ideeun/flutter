@@ -254,7 +254,23 @@ class PasswordResetRequest(APIView):
                 settings.DEFAULT_FROM_EMAIL,
                 [email],
                 fail_silently=False,
-                   html_message=f'<html><body style="text-align: center; background: linear-gradient(158deg, rgba(2,0,36,1) 0%, rgba(9,9,121,1) 60%, rgba(0,226,255,1) 100%); padding: 100px 0;"><h1 style="color:#3EA1F2; font-size: 32px">Сброс пароля.</h1><h3 style="color: white; font-size: 20px">Был запрошен сброс пароля для пользователя {user.username},<br><span style="color: #FF4545">если это были не вы, не реагируйте на это письмо.</span><br>Для сброса пароля нажмите кнопку ниже.</h3><a href="{reset_url}" style="color: #ffffff; text-decoration: none;"><button style="padding: 15px 50px; color: #ffffff; background: linear-gradient(90deg, #42A4F5, #2088E5); border-radius:10px; border: none">Cброс пароля</button></a></body></html>'
+html_message = '''
+<html>
+  <body style="text-align: center; background-color: white; padding: 100px 0;">
+    <h1 style="color: black; font-size: 32px">Сброс пароля.</h1>
+    <h3 style="color: black; font-size: 20px">
+      Был запрошен сброс пароля для пользователя {user.username},<br>
+      <span style="color: #FF4545">если это были не вы, не реагируйте на это письмо.</span><br>
+      Для сброса пароля нажмите кнопку ниже.
+    </h3>
+    <a href="{reset_url}" style="color: #ffffff; text-decoration: none;">
+      <button style="padding: 15px 50px; color: #ffffff; background-color: #6A4C9C; border-radius: 10px; border: none">
+        Сброс пароля
+      </button>
+    </a>
+  </body>
+</html>
+'''
             )
             return Response({"message": "Password reset link sent"}, status=status.HTTP_200_OK)
         except User.DoesNotExist:

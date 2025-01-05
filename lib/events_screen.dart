@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart'; // Для доступа к директориям устройства
 import 'dart:io';
+import 'package:open_file/open_file.dart';
 
 class EventsScreen extends StatefulWidget {
   @override
@@ -19,7 +20,7 @@ class _EventsScreenState extends State<EventsScreen> {
 
   List<Map<String, dynamic>> currencies = [];
   String? selectedCurrency;
-  String eventTypeFilter = 'All';
+  String ?eventTypeFilter;
 
   Future<void> _fetchEvents() async {
     try {
@@ -85,7 +86,7 @@ class _EventsScreenState extends State<EventsScreen> {
     setState(() {
       filteredEvents = events.where((event) {
         bool matchesCurrency = selectedCurrency == null || selectedCurrency == 'All' || event['currency'] == selectedCurrency;
-        bool matchesType = eventTypeFilter == 'All' || event['event_type'] == eventTypeFilter;
+        bool matchesType = eventTypeFilter == null ||eventTypeFilter == 'All' || event['event_type'] == eventTypeFilter;
         return matchesCurrency && matchesType;
       }).toList();
     });
@@ -111,11 +112,24 @@ class _EventsScreenState extends State<EventsScreen> {
 
   pdf.addPage(
     pw.Page(
-      build: (context) => pw.Table.fromTextArray(
-        context: context,
-        data: [
-          ['Date', 'User', 'Currency', 'Quantity', 'Exchange Rate', 'Total', 'Event Type'],
-          ...filteredEvents.map((event) => [
+      build: (context) => pw.Column(
+        children: [
+          // Добавляем заголовок "Евенты"
+          pw.Text(
+            'EVENTS',
+            style: pw.TextStyle(
+              fontSize: 20, // Размер шрифта для заголовка
+              fontWeight: pw.FontWeight.bold, // Жирный шрифт
+            ),
+          ),
+          pw.SizedBox(height: 20), // Отступ между заголовком и таблицей
+
+          // Таблица с данными
+          pw.Table.fromTextArray(
+            context: context,
+            data: [
+              ['Date', 'User', 'Currency', 'Quantity', 'Exchange Rate', 'Total', 'Event Type'],
+              ...filteredEvents.map((event) => [
                 event['created_at'] != null && event['created_at'].isNotEmpty
                     ? DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(event['created_at']))
                     : 'Invalid Date',
@@ -126,6 +140,9 @@ class _EventsScreenState extends State<EventsScreen> {
                 event['total'].toString(),
                 event['event_type'],
               ]),
+            ],
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
         ],
       ),
     ),
@@ -145,6 +162,7 @@ class _EventsScreenState extends State<EventsScreen> {
     // Сохраняем файл в папке
     final outputFile = File('${desktopDir.path}/events_table.pdf');
     await outputFile.writeAsBytes(await pdf.save());
+    await OpenFile.open(outputFile.path);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('PDF saved at ${outputFile.path}')),
@@ -156,6 +174,9 @@ class _EventsScreenState extends State<EventsScreen> {
     );
   }
 }
+
+
+
 
 
 
@@ -171,11 +192,11 @@ Widget build(BuildContext context) {
   final isDarkMode = themeProvider.isDarkMode;  // Проверка на темную тему
 
   return Scaffold(
-    backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : Colors.white, // Фон для Scaffold
+    backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : const Color.fromARGB(255, 255, 255, 255), // Фон для Scaffold
     appBar: AppBar(
       backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : const Color.fromARGB(255, 255, 255, 255),  // Фон AppBar
       title: Text(
-        'Events Table',
+        'Events',
         style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),  // Цвет текста в AppBar
       ),
       iconTheme: IconThemeData(color: isDarkMode ? Colors.white : Colors.black),
@@ -197,7 +218,7 @@ Widget build(BuildContext context) {
             children: [
               // Фильтр по валюте
               DropdownButton<String>(
-                value: selectedCurrency ?? 'All', // Provide a default value like 'All' if null
+                value: selectedCurrency, // Provide a default value like 'All' if null
                 hint: Text('Select Currency', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
                 onChanged: (newValue) {
                   setState(() {
@@ -205,10 +226,13 @@ Widget build(BuildContext context) {
                     filterEvents();
                   });
                 },
+                dropdownColor: isDarkMode ? const Color.fromARGB(255, 15, 22, 36) : Colors.white, // Устанавливаем цвет фона для выпадающего списка
+                // style: TextStyle(color: isDarkMode ? Colors.white : Colors.black, fontSize: 16),
                 items: ['All', ...currencies.map((currency) {
                   return currency['name'];
                 })].map((currency) {
                   return DropdownMenuItem<String>(
+
                     value: currency,
                     child: Text(currency, style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
                   );
@@ -218,12 +242,15 @@ Widget build(BuildContext context) {
               // Фильтр по типу события
               DropdownButton<String>(
                 value: eventTypeFilter,
+                hint: Text('Type', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
+
                 onChanged: (newValue) {
                   setState(() {
                     eventTypeFilter = newValue!;
                     filterEvents();
                   });
                 },
+                dropdownColor: isDarkMode ? const Color.fromARGB(255, 15, 22, 36) : Colors.white, // Устанавливаем цвет фона для выпадающего списка
                 items: ['All', 'SELL', 'BUY'].map((type) {
                   return DropdownMenuItem<String>(
                     value: type,
@@ -304,7 +331,7 @@ Widget build(BuildContext context) {
                   },
             child: Icon(Icons.edit),
             tooltip: 'Edit Event',
-            backgroundColor: Colors.blue,
+            backgroundColor: const Color.fromARGB(255, 151, 169, 228),
           ),
         SizedBox(height: 10),
         // Кнопка удаления
@@ -318,7 +345,7 @@ Widget build(BuildContext context) {
                   },
             child: Icon(Icons.delete),
             tooltip: 'Delete Event',
-            backgroundColor: Colors.red,
+            backgroundColor: const Color.fromARGB(255, 226, 94, 84),
           ),
       ],
     ),
@@ -424,14 +451,14 @@ Widget build(BuildContext context) {
                       border: Border.all(
                         width: 2,
                         color: eventType == 'SELL'
-                            ? const Color.fromARGB(255, 173, 125, 241)
+                            ? const Color.fromARGB(255, 53, 79, 197)
                             : const Color.fromARGB(255, 132, 130, 130).withOpacity(0.5),
                       ),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
                       Icons.arrow_upward,
-                      color: eventType == 'SELL' ? const Color.fromARGB(255, 173, 125, 241) : const Color.fromARGB(255, 170, 169, 169),
+                      color: eventType == 'SELL' ? const Color.fromARGB(255, 53, 79, 197) : const Color.fromARGB(255, 170, 169, 169),
                     ),
                   ),
                 ),
@@ -445,26 +472,26 @@ Widget build(BuildContext context) {
                       border: Border.all(
                         width: 2,
                         color: eventType == 'BUY'
-                            ? const Color.fromARGB(255, 173, 125, 241)
+                            ? const Color.fromARGB(255, 53, 79, 197)
                             : const Color.fromARGB(255, 142, 141, 141).withOpacity(0.5),
                       ),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
                       Icons.arrow_downward,
-                      color: eventType == 'BUY' ? const Color.fromARGB(255, 173, 125, 241) : const Color.fromARGB(255, 175, 173, 173),
+                      color: eventType == 'BUY' ? const Color.fromARGB(255, 53, 79, 197) : const Color.fromARGB(255, 175, 173, 173),
                     ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 20),
             // Поле для выбора валюты
             Container(
               padding: EdgeInsets.symmetric(horizontal: 8.0),
               decoration: BoxDecoration(
                 border: Border.all(color: isDarkMode ? Colors.white : Colors.black, width: 1), // Цвет рамки
-                borderRadius: BorderRadius.circular(8.0),
+                borderRadius: BorderRadius.circular(15),
               ),
               child: DropdownButton<String>(
                 value: selectedCurrency,
@@ -474,6 +501,7 @@ Widget build(BuildContext context) {
                   });
                 },
                 isExpanded: true,
+                dropdownColor: isDarkMode ? const Color.fromARGB(255, 15, 22, 36) : Colors.white, // Устанавливаем цвет фона для выпадающего списка
                 hint: Text('Select a currency', style: TextStyle(fontSize: 14, color: isDarkMode ? Colors.white : Colors.black)),
                 items: currencies.map((currency) {
                   return DropdownMenuItem<String>(
@@ -483,80 +511,101 @@ Widget build(BuildContext context) {
                 }).toList(),
               ),
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 20),
             // Поле для ввода пользователя
-            TextField(
-              controller: userController,
-              decoration: InputDecoration(
-                labelText: 'User',
-                labelStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста метки
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: isDarkMode ? Colors.white : const Color.fromARGB(255, 0, 0, 0)), // Цвет рамки
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: isDarkMode ? Colors.purple : Colors.blue), // Цвет рамки при фокусе
-                ),
-              ),
-              enabled: false,
-              style: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста
-            ),
-            // Поле для ввода количества
-            SizedBox(height: 10),
-            TextField(
-              controller: quantityController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Quantity',
-                labelStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста метки
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: isDarkMode ? Colors.white : Colors.black), // Цвет рамки
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: const Color.fromARGB(255, 167, 142, 255)), // Цвет рамки при фокусе
-                ),
-              ),
-              onChanged: (value) {
-                _updateTotal();
-              },
-              style: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста
-            ),
-            // Поле для ввода курса обмена
-            SizedBox(height: 16),
-            TextField(
-              controller: exchangeRateController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Exchange Rate',
-                labelStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста метки
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: isDarkMode ? Colors.white : Colors.black), // Цвет рамки
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: const Color.fromARGB(255, 167, 142, 255)), // Цвет рамки при фокусе
-                ),
-              ),
-              onChanged: (value) {
-                _updateTotal();
-              },
-              style: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста
-            ),
-            // Поле для автоматического расчета Total
-            TextField(
-              controller: totalController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Total',
-                labelStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста метки
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: isDarkMode ? Colors.white : Colors.black), // Цвет рамки
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: isDarkMode ? Colors.purple : Colors.blue), // Цвет рамки при фокусе
-                ),
-              ),
-              enabled: false,
-              style: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста
-            ),
+            Container(
+  decoration: BoxDecoration(
+    color: isDarkMode ? const Color.fromARGB(255, 182, 182, 182).withOpacity(0.1) : Colors.grey.shade200, // Цвет фона
+    borderRadius: BorderRadius.circular(20), // Округление углов
+  ),
+  child: TextField(
+    controller: userController,
+    decoration: InputDecoration(
+      labelText: 'User',
+      labelStyle: TextStyle(
+        color: isDarkMode ? const Color.fromARGB(255, 167, 166, 166).withOpacity(0.7) : Colors.black.withOpacity(0.7), // Прозрачный цвет лейбла
+      ),
+      enabledBorder: InputBorder.none, // Убираем рамку
+      focusedBorder: InputBorder.none, // Убираем рамку при фокусе
+      contentPadding: EdgeInsets.all(12), // Отступы внутри поля
+    ),
+    enabled: false,
+    style: TextStyle(color: isDarkMode ? const Color.fromARGB(255, 165, 164, 164) : const Color.fromARGB(255, 128, 127, 127)), // Цвет текста
+  ),
+),
+    SizedBox(height: 15),
+
+Container(
+  decoration: BoxDecoration(
+    color: isDarkMode ? const Color.fromARGB(255, 182, 182, 182).withOpacity(0.1) : Colors.grey.shade200, // Цвет фона
+    borderRadius: BorderRadius.circular(20), // Округление углов
+  ),
+  child: TextField(
+    controller: quantityController,
+    keyboardType: TextInputType.number,
+    decoration: InputDecoration(
+      labelText: 'Quantity',
+      labelStyle: TextStyle(
+        color: isDarkMode ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7), // Прозрачный цвет лейбла
+      ),
+      enabledBorder: InputBorder.none, // Убираем рамку
+      focusedBorder: InputBorder.none, // Убираем рамку при фокусе
+      contentPadding: EdgeInsets.all(12), // Отступы внутри поля
+    ),
+    onChanged: (value) {
+      _updateTotal();
+    },
+    style: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста
+  ),
+),
+    SizedBox(height: 15),
+
+Container(
+  decoration: BoxDecoration(
+    color: isDarkMode ? const Color.fromARGB(255, 182, 182, 182).withOpacity(0.1) : Colors.grey.shade200, // Цвет фона
+    borderRadius: BorderRadius.circular(20), // Округление углов
+  ),
+  child: TextField(
+    controller: exchangeRateController,
+    keyboardType: TextInputType.number,
+    decoration: InputDecoration(
+      labelText: 'Exchange Rate',
+      labelStyle: TextStyle(
+        color: isDarkMode ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7), // Прозрачный цвет лейбла
+      ),
+      enabledBorder: InputBorder.none, // Убираем рамку
+      focusedBorder: InputBorder.none, // Убираем рамку при фокусе
+      contentPadding: EdgeInsets.all(12), // Отступы внутри поля
+    ),
+    onChanged: (value) {
+      _updateTotal();
+    },
+    style: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста
+  ),
+),
+    SizedBox(height: 15),
+Container(
+  decoration: BoxDecoration(
+    color: isDarkMode ? const Color.fromARGB(255, 182, 182, 182).withOpacity(0.1) : Colors.grey.shade200, // Цвет фона
+    borderRadius: BorderRadius.circular(20), // Округление углов
+  ),
+  child: TextField(
+    controller: totalController,
+    keyboardType: TextInputType.number,
+    decoration: InputDecoration(
+      labelText: 'Total',
+      labelStyle: TextStyle(
+        color: isDarkMode ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7), // Прозрачный цвет лейбла
+      ),
+      enabledBorder: InputBorder.none, // Убираем рамку
+      focusedBorder: InputBorder.none, // Убираем рамку при фокусе
+      contentPadding: EdgeInsets.all(12), // Отступы внутри поля
+    ),
+    enabled: false,
+    style: TextStyle(color: isDarkMode ? Colors.white : Colors.black), // Цвет текста
+  ),
+),
+
             SizedBox(height: 20),
             // Центрируем кнопку сохранения
             Center(
@@ -575,8 +624,8 @@ Widget build(BuildContext context) {
                 },
                 child: Text('Save Changes'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isDarkMode ? Colors.purple : const Color.fromARGB(255, 233, 233, 233), // Цвет кнопки
-                  foregroundColor: const Color.fromARGB(255, 141, 117, 229)  // Цвет текста на кнопке
+                  backgroundColor: const Color.fromARGB(255, 70, 86, 150), // Цвет кнопки
+                  foregroundColor: const Color.fromARGB(255, 211, 211, 211)  // Цвет текста на кнопке
                 ),
               ),
             ),

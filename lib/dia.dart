@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:math';
+import 'tema.dart'; 
+import 'package:provider/provider.dart';
 
 class ProfitChartScreen extends StatefulWidget {
   final List<Map<String, dynamic>> processedData;
@@ -37,11 +39,17 @@ class _ProfitChartScreenState extends State<ProfitChartScreen>
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);  
+  final isDarkMode = themeProvider.isDarkMode;  
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: isDarkMode 
+        ? Color.fromARGB(255, 15, 22, 36)
+        : Colors.white,
       ),
-      backgroundColor: Colors.black,
+      backgroundColor: isDarkMode 
+        ? Color.fromARGB(255, 15, 22, 36)
+        : Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GestureDetector(
@@ -54,7 +62,7 @@ class _ProfitChartScreenState extends State<ProfitChartScreen>
             children: [
               Text(
                 showRemaining ? 'Remaining' : 'Profit',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color:isDarkMode ? Colors.white: Colors.black),
               ),
               SizedBox(height: 100),
               Container(
@@ -91,7 +99,7 @@ class _ProfitChartScreenState extends State<ProfitChartScreen>
                             titleStyle: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color:isDarkMode ? Colors.white: Colors.black,
                               shadows: [
                                 Shadow(
                                   color: baseColor.withOpacity(0.9),
@@ -150,7 +158,7 @@ class _ProfitChartScreenState extends State<ProfitChartScreen>
                         SizedBox(width: 8),
                         Text(
                           data['currency'] ?? '',
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color:isDarkMode ? Colors.white: Colors.black),
                         ),
                       ],
                     ),

@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'api_service.dart';
 import 'dia.dart';
 
-
 class CashScreen extends StatefulWidget {
   @override
   _CashScreenState createState() => _CashScreenState();
@@ -17,11 +16,13 @@ class _CashScreenState extends State<CashScreen> {
   double totalProfitFromFormula = 0.0;
   double totalBuy = 0.0;
   double totalSell = 0.0;
-  double totalRemaining = 0.0; // Общее количество оставшихся единиц
+  double totalRemaining = 0.0;
+  int sortColumnIndex = 0;  // Индекс текущего столбца для сортировки
+  bool sortAscending = true; 
 
   Future<void> fetchEvents() async {
     try {
-      final eventsData = await Api.fetchEvents(); // Используем метод API
+      final eventsData = await Api.fetchEvents(); 
       setState(() {
         events = eventsData;
         isLoading = false;
@@ -48,7 +49,7 @@ class _CashScreenState extends State<CashScreen> {
     totalBuy = 0;
     totalSell = 0;
     totalProfitFromFormula = 0.0;
-    totalRemaining = 0.0; // Сброс значения остатка
+    totalRemaining = 0.0;
 
     groupedEvents.forEach((currency, events) {
       double buyTotal = 0, buyCount = 0;
@@ -72,12 +73,12 @@ class _CashScreenState extends State<CashScreen> {
       double sellAvg = sellCount > 0 ? sellTotal / sellCount : 0;
       double profit = (sellAvg - buyAvg) * (sellCount <= buyCount ? sellCount : buyCount);
 
-      remaining = buyCount - sellCount;
+      remaining = sellTotal - buyTotal;
 
       totalProfitFromFormula += profit;
       totalBuy += buyTotal;
       totalSell += sellTotal;
-      totalRemaining += remaining; // Добавляем остаток в общую сумму
+      totalRemaining += remaining;
 
       processedData.add({
         'currency': currency,
@@ -93,6 +94,20 @@ class _CashScreenState extends State<CashScreen> {
     return processedData;
   }
 
+  
+
+void _sort<T>(Comparable<T> Function(Map<String, dynamic> d) getField, int columnIndex, bool ascending) {
+  setState(() {
+    if (ascending) {
+      events.sort((a, b) => Comparable.compare(getField(a), getField(b)));
+    } else {
+      events.sort((a, b) => Comparable.compare(getField(b), getField(a)));
+    }
+    sortColumnIndex = columnIndex;
+    sortAscending = ascending;
+  });
+}
+
   @override
   void initState() {
     super.initState();
@@ -101,8 +116,8 @@ class _CashScreenState extends State<CashScreen> {
 
   @override
 Widget build(BuildContext context) {
-  final themeProvider = Provider.of<ThemeProvider>(context);  // Получаем текущую тему
-  final isDarkMode = themeProvider.isDarkMode;  // Проверка на темную тему
+  final themeProvider = Provider.of<ThemeProvider>(context);  
+  final isDarkMode = themeProvider.isDarkMode;  
 
   if (isLoading) {
     return Center(child: CircularProgressIndicator());
@@ -115,16 +130,26 @@ Widget build(BuildContext context) {
   final processedData = processTableData(events);
 
   return Scaffold(
-    backgroundColor: isDarkMode ? const Color.fromARGB(255, 6, 16, 38) : Colors.white,  // Фон для Scaffold
+    backgroundColor: isDarkMode 
+        ? Color.fromARGB(255, 15, 22, 36)
+        : Colors.white,  
     appBar: AppBar(
       title: Text('Kassa'),
-      backgroundColor: isDarkMode ? const Color.fromARGB(255, 6, 16, 38) : const Color.fromARGB(255, 255, 255, 255),  // Фон AppBar
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back),
-        onPressed: () {
-          Navigator.of(context).pop();
-        },
-      ),
+      backgroundColor: isDarkMode 
+          ? Color.fromARGB(255, 15, 22, 36)
+          : Colors.white, 
+      actions: [
+        IconButton(
+          icon: Icon(Icons.bar_chart),
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => ProfitChartScreen(
+                processedData: processedData,
+              ),
+            ));
+          },
+        ),
+      ],
     ),
     body: Column(
       children: [
@@ -135,14 +160,51 @@ Widget build(BuildContext context) {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  columns: const [
-                    DataColumn(label: Text('Currency', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Buy Total', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Buy Avg', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Sell Total', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Sell Avg', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Profit', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Remaining', style: TextStyle(fontWeight: FontWeight.bold))),
+                  sortColumnIndex: sortColumnIndex,
+                  sortAscending: sortAscending,
+                  columns: [
+                    DataColumn(
+                      label: Text('Currency', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onSort: (columnIndex, ascending) {
+                        _sort<String>((d) => d['currency'], columnIndex, ascending);
+                      },
+                    ),
+                    DataColumn(
+                      label: Text('Buy Total', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onSort: (columnIndex, ascending) {
+                        _sort<num>((d) => d['buy_total'], columnIndex, ascending);
+                      },
+                    ),
+                    DataColumn(
+                      label: Text('Buy Avg', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onSort: (columnIndex, ascending) {
+                        _sort<num>((d) => d['buy_avg'], columnIndex, ascending);
+                      },
+                    ),
+                    DataColumn(
+                      label: Text('Sell Total', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onSort: (columnIndex, ascending) {
+                        _sort<num>((d) => d['sell_total'], columnIndex, ascending);
+                      },
+                    ),
+                    DataColumn(
+                      label: Text('Sell Avg', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onSort: (columnIndex, ascending) {
+                        _sort<num>((d) => d['sell_avg'], columnIndex, ascending);
+                      },
+                    ),
+                    DataColumn(
+                      label: Text('Profit', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onSort: (columnIndex, ascending) {
+                        _sort<num>((d) => d['profit'], columnIndex, ascending);
+                      },
+                    ),
+                    // DataColumn(
+                    //   label: Text('Remaining', style: TextStyle(fontWeight: FontWeight.bold)),
+                    //   onSort: (columnIndex, ascending) {
+                    //     _sort<num>((d) => d['remaining'], columnIndex, ascending);
+                    //   },
+                    // ),
                   ],
                   rows: processedData.map((data) {
                     return DataRow(
@@ -160,7 +222,7 @@ Widget build(BuildContext context) {
                                 : const Color.fromARGB(255, 212, 65, 16),
                           ),
                         )),
-                        DataCell(Text(data['remaining']?.toStringAsFixed(2) ?? '0', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                        // DataCell(Text(data['remaining']?.toStringAsFixed(2) ?? '', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
                       ],
                     );
                   }).toList(),
@@ -170,44 +232,32 @@ Widget build(BuildContext context) {
           ),
         ),
         SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            columns: const [
-              DataColumn(label: Text('Profit', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Remaining', style: TextStyle(fontWeight: FontWeight.bold))),
-            ],
-            rows: [
-              DataRow(
-                cells: [
-                  DataCell(Text(
-                    totalProfitFromFormula.toStringAsFixed(2),
-                    style: TextStyle(
-                      color: totalProfitFromFormula >= 0
-                          ? const Color.fromARGB(255, 17, 200, 105)
-                          : const Color.fromARGB(255, 212, 65, 16),
-                    ),
-                  )),
-                  DataCell(Text(totalRemaining.toStringAsFixed(2), style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
-                ],
-              ),
-            ],
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: const [
+                DataColumn(label: Text('Total Profit', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Som', style: TextStyle(fontWeight: FontWeight.bold))),
+              ],
+              rows: [
+                DataRow(
+                  cells: [
+                    DataCell(Text(
+                      totalProfitFromFormula.toStringAsFixed(2),
+                      style: TextStyle(
+                        color: totalProfitFromFormula >= 0
+                            ? const Color.fromARGB(255, 17, 200, 105)
+                            : const Color.fromARGB(255, 212, 65, 16),
+                      ),
+                    )),
+                    DataCell(Text(totalRemaining.toStringAsFixed(2), style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-    floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-    floatingActionButton: FloatingActionButton(
-  onPressed: () {
-    final processedData = processTableData(events);
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (context) => ProfitChartScreen(
-        processedData: processedData,
+        ],
       ),
-    ));
-  },
-  backgroundColor: isDarkMode ? const Color.fromARGB(255, 17, 100, 200) : Colors.blue,
-  child: const Icon(Icons.bar_chart),
-),
-  );
+    );
+  }
 }
-}
+      

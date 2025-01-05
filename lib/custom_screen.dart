@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/navigator.dart';
 import 'currency.dart';
 import 'users_screen.dart';
 import "kassa_screen.dart"; 
@@ -8,6 +9,7 @@ import 'tema.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import 'current_user.dart';
+import 'report_screen.dart';
 
 class CustomScreen extends StatefulWidget {
 
@@ -149,44 +151,57 @@ Future<void> clearEvents() async {
 
 
   void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Error'),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+  final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+  if (!mounted) return;
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Error', style: TextStyle(color: const Color.fromARGB(255, 245, 111, 101))),
+        content: Text(message, style: TextStyle(color: const Color.fromARGB(255, 247, 119, 110))),
+backgroundColor: isDarkMode 
+        ? Color.fromARGB(255, 15, 22, 36)
+        : Colors.white,        actions: <Widget>[
+          TextButton(
+            child: Text('OK', style: TextStyle(color:const Color.fromARGB(255, 116, 126, 239))),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
 
   void _showSuccessDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Success'),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Success', style: TextStyle(color: isDarkMode 
+        ? Color.fromARGB(255, 255, 255, 255)
+        : const Color.fromARGB(255, 0, 0, 0),)),
+        content: Text(message, style: TextStyle(color : isDarkMode 
+        ? Color.fromARGB(255, 255, 255, 255)
+        : const Color.fromARGB(255, 0, 0, 0),)),
+backgroundColor: isDarkMode 
+        ? Color.fromARGB(255, 15, 22, 36)
+        : Colors.white,        actions: <Widget>[
+          TextButton(
+            child: Text('OK', style: TextStyle(color:const Color.fromARGB(255, 116, 126, 239))),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
 
   // Функции для активации/деактивации стрелок
   void toggleSale() {
@@ -214,22 +229,40 @@ Future<void> clearEvents() async {
 }
 
 
-  @override
-Widget build(BuildContext context) {
+  Widget build(BuildContext context) {
   final themeProvider = Provider.of<ThemeProvider>(context);
   final isDarkMode = themeProvider.isDarkMode;
 
   return MaterialApp(
     theme: isDarkMode ? ThemeData.dark() : ThemeData.light(),
     home: Scaffold(
-      backgroundColor: isDarkMode
-            ? Color.fromARGB(255, 15, 22, 36)
-            : const Color.fromARGB(255, 255, 255, 255),
-      appBar: AppBar(
-        backgroundColor: isDarkMode
-            ? Color.fromARGB(255, 15, 22, 36)
-            : const Color.fromARGB(255, 255, 255, 255),
-        title: Text(
+      extendBody: true,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDarkMode
+                ? [
+                    Color.fromARGB(255, 4, 13, 36), // Темный верх
+                    // Color.fromARGB(255, 46, 58, 109),
+                    Color.fromARGB(255, 54, 68, 103), // Темный низ
+ // Темный низ
+                  ]
+                : [
+                    Color.fromARGB(255, 65, 91, 185),
+                    Color.fromARGB(255, 72, 82, 128), // Светлый верх
+ // Светлый верх
+                    Color.fromARGB(255, 234, 246, 255), // Светлый низ
+                  ],
+          ),
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: Text(
           'HOME',
           style: TextStyle(
             color: isDarkMode ? Colors.white : Colors.black,
@@ -321,7 +354,10 @@ Widget build(BuildContext context) {
                     leading: Icon(Icons.document_scanner_rounded, color: isDarkMode ? Colors.white : Colors.black),
                     title: Text('Reports', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
                     onTap: () {
-                      Navigator.pop(context);
+                      Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ReportsScreen()),
+                    );
                     },
                   ),
                   ListTile(
@@ -338,7 +374,10 @@ Widget build(BuildContext context) {
                     leading: Icon(Icons.delete_forever, color: isDarkMode ? Colors.white : Colors.black),
                     title: Text('Clear', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)),
                     onTap: () {
-                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => HomeScreen()),
+                      );
                       _showClearConfirmationDialog();
                     },
                   ),
@@ -352,26 +391,6 @@ Widget build(BuildContext context) {
         builder: (context, orientation) {
           bool isPortrait = orientation == Orientation.portrait;
           return Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDarkMode
-                    ? [
-                        Color.fromARGB(255, 15, 22, 36),
-                        Color.fromARGB(255, 15, 22, 31),
-                        Color.fromARGB(255, 28, 39, 163),
-                        Color.fromARGB(255, 61, 65, 199),
-                        Color.fromARGB(255, 11, 14, 68),
-                        Color.fromARGB(255, 15, 22, 36)                      ]
-                    : [
-                        Color.fromARGB(255, 41, 47, 120),
-                        Color.fromARGB(255, 74, 77, 121),
-                        Color.fromARGB(255, 188, 190, 207)
-                      ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              
-            ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -479,7 +498,7 @@ Widget build(BuildContext context) {
                           child: Text(
                             currency['name'],
                             style: TextStyle(
-                              color: isDarkMode? Colors.white : Colors.black,
+                              color: isDarkMode? Colors.white : const Color.fromARGB(255, 0, 0, 0),
                               fontSize: 16,
                             ),
                           ),
@@ -493,7 +512,7 @@ Widget build(BuildContext context) {
                       hint: Text(
                         'Select Currency',
                         style: TextStyle(
-                          color: isDarkMode? textColor.withOpacity(0.6) : Color.fromARGB(0, 0, 0, 0).withOpacity(0.6),
+                          color: textColor.withOpacity(0.6),
                           fontSize: 14,
                         ),
                       ),
@@ -510,7 +529,7 @@ Widget build(BuildContext context) {
                       filled: true,
                       fillColor: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.1),
                       hintText: 'Quantity',
-                      hintStyle: TextStyle(color: isDarkMode? textColor.withOpacity(0.6) : Color.fromARGB(0, 0, 0, 0).withOpacity(0.6),
+                      hintStyle: TextStyle(color:textColor.withOpacity(0.6),
 ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
@@ -531,7 +550,7 @@ Widget build(BuildContext context) {
                       fillColor: Colors.white.withOpacity(0.1),
                       hintText: 'Exchange rate',
                       hintStyle: TextStyle(                          
-                      color: isDarkMode? textColor.withOpacity(0.6) : Color.fromARGB(0, 0, 0, 0).withOpacity(0.6),
+                      color: textColor.withOpacity(0.6),
 ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
@@ -546,13 +565,13 @@ Widget build(BuildContext context) {
                   TextField(
                     controller: totalController,
                     readOnly: true,
-                    style: TextStyle(color :isDarkMode? textColor.withOpacity(1) : Colors.black.withOpacity(1)),
+                    style: TextStyle(color :textColor.withOpacity(1)),
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.1),
                       hintText: 'Total',
                       hintStyle: TextStyle(
-                      color: isDarkMode? textColor.withOpacity(1) : Colors.black.withOpacity(1),
+                      color: textColor.withOpacity(1),
 ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
@@ -581,6 +600,8 @@ Widget build(BuildContext context) {
           );
         },
         ),
+    ),
+  ),
     ),
   );
 }
