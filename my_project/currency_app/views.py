@@ -256,11 +256,11 @@ class PasswordResetRequest(APIView):
                 fail_silently=False,
 html_message = f'''
 <html>
-  <body style="text-align: center; background-color: white; padding: 100px 0;">
-    <h1 style="color: black; font-size: 28px">Password Reset</h1>
-    <h3 style="color: black; font-size: 18px">
-      A password reset request has been made for the user {user.username},<br>
-      <span style="color: #FF4545">if this wasn’t you, please ignore this email.</span><br>
+  <body style="text-align: center; background-color: #f4f4f4; padding: 100px 0;">
+    <h1 style="color: #333; font-size: 28px">FXer - Reset Your Password</h1>
+    <h3 style="color: #333; font-size: 18px">
+      A password reset request has been made for the user {user.username}.<br>
+      <span style="color: #FF4545">If this wasn’t you, please ignore this email.</span><br>
       To reset your password, click the button below.
     </h3>
     <a href="{reset_url}" style="color: #ffffff; text-decoration: none;">
@@ -268,6 +268,9 @@ html_message = f'''
         Reset Password
       </button>
     </a>
+    <p style="color: #555; font-size: 16px; margin-top: 30px;">
+      If you have any questions, feel free to contact our support team! 😊✨
+    </p>
   </body>
 </html>
 '''
