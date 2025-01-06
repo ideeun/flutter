@@ -588,7 +588,13 @@ backgroundColor: isDarkMode
                   SizedBox(height: 25),
                   Center(
                     child: ElevatedButton(
-                      onPressed: addEntry,
+                      onPressed: () {
+                      if (!isBuyActive && !isSaleActive) {
+                        _showErrorDialog('Please select either Buy or Sell before proceeding.');
+                        return;
+                      }
+                      addEntry();
+                    },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color.fromARGB(255, 92, 115, 185),
                         foregroundColor: Colors.white,
