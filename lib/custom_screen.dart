@@ -238,8 +238,8 @@ backgroundColor: isDarkMode
   Widget build(BuildContext context) {
   final themeProvider = Provider.of<ThemeProvider>(context);
   final isDarkMode = themeProvider.isDarkMode;
-
   return MaterialApp(
+    debugShowCheckedModeBanner: false,
     theme: isDarkMode ? ThemeData.dark() : ThemeData.light(),
     home: Scaffold(
       extendBody: true,

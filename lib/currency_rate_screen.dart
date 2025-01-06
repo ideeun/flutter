@@ -152,7 +152,7 @@ class CurrencySearchDelegate extends SearchDelegate {
             ? Color.fromARGB(255, 15, 22, 36)  // Темный цвет фона поля поиска
             : Color.fromARGB(255, 255, 255, 255), // Светлый цвет фона поля поиска
         hintStyle: TextStyle(
-          color: isDarkMode ? Colors.white70 : Colors.black54, // Цвет текста подсказки
+          color: isDarkMode ? const Color.fromARGB(179, 249, 249, 249) : Colors.black54, // Цвет текста подсказки
         ),
       ),
     );
