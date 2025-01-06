@@ -71,21 +71,26 @@ class _CustomScreenState extends State<CustomScreen> {
   }
 
 void _showClearConfirmationDialog() {
+  final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
   showDialog(
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
         title: Text('Confirm Clear'),
         content: Text('Are you sure you want to clear all events? This action cannot be undone.'),
+        backgroundColor: isDarkMode 
+        ? Color.fromARGB(255, 15, 22, 36)
+        : Colors.white,
         actions: <Widget>[
           TextButton(
-            child: Text('Cancel'),
+            child: Text('Cancel', style: TextStyle(color:const Color.fromARGB(255, 116, 126, 239))),
             onPressed: () {
               Navigator.of(context).pop();
             },
           ),
           TextButton(
-            child: Text('Clear'),
+            child: Text('Clear', style: TextStyle(color:const Color.fromARGB(255, 116, 126, 239))),
             onPressed: () {
               clearEvents();  // Очищаем ивенты
               Navigator.of(context).pop();
@@ -162,7 +167,8 @@ Future<void> clearEvents() async {
         content: Text(message, style: TextStyle(color: const Color.fromARGB(255, 247, 119, 110))),
 backgroundColor: isDarkMode 
         ? Color.fromARGB(255, 15, 22, 36)
-        : Colors.white,        actions: <Widget>[
+        : Colors.white,        
+        actions: <Widget>[
           TextButton(
             child: Text('OK', style: TextStyle(color:const Color.fromARGB(255, 116, 126, 239))),
             onPressed: () {
@@ -265,13 +271,13 @@ backgroundColor: isDarkMode
             title: Text(
           'HOME',
           style: TextStyle(
-            color: isDarkMode ? Colors.white : Colors.black,
+            color: Colors.white,
           ),
         ),
         leading: Builder(
           builder: (BuildContext context) {
             return IconButton(
-              icon: Icon(Icons.menu, color: isDarkMode ? Colors.white : Colors.black),
+              icon: Icon(Icons.menu, color: Colors.white),
               onPressed: () {
                 Scaffold.of(context).openDrawer();
               },
@@ -281,7 +287,7 @@ backgroundColor: isDarkMode
         actions: [
           IconButton(
             icon: Icon(isDarkMode ? Icons.wb_sunny : Icons.brightness_3,
-                color: isDarkMode ? Colors.white : Colors.black),
+                color: Colors.white),
             onPressed: () {
               themeProvider.toggleTheme(); // Use ThemeProvider to toggle the theme
             },
@@ -289,13 +295,13 @@ backgroundColor: isDarkMode
         ],
       ),
       drawer: Drawer(
-        backgroundColor: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : Colors.white,
+        backgroundColor: isDarkMode ? Color.fromARGB(255, 54, 68, 103).withOpacity(1) : Color.fromARGB(255, 234, 246, 255).withOpacity(1),
         child: Column(
           children: <Widget>[
             Container(
               padding: EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: isDarkMode ? Color.fromARGB(255, 15, 22, 36) : Colors.white,
+                color: isDarkMode ? Color.fromARGB(255, 8, 18, 45) : Color.fromARGB(255, 112, 129, 170),
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(10),
                   topRight: Radius.circular(10),
@@ -579,18 +585,20 @@ backgroundColor: isDarkMode
                       ),
                     ),
                   ),
-                  SizedBox(height: 20),
+                  SizedBox(height: 25),
                   Center(
                     child: ElevatedButton(
                       onPressed: addEntry,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 106, 114, 249),
+                        backgroundColor: const Color.fromARGB(255, 92, 115, 185),
+                        foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
                       child: Text('Submit'),
+                      
                     ),
                   ),  // Add space to push it down
       

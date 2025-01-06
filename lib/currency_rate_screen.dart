@@ -37,13 +37,14 @@ class _CurrencyWidgetState extends State<CurrencyWidget> {
 
   // Функция для поиска валюты
   void _filterCurrencyData(String query) {
-  setState(() {
-    // Преобразуем Map в список, фильтруем и снова создаем Map
-    _filteredCurrencyData = Map.fromEntries(
-      _currencyData.entries.where((entry) =>
-          entry.key.toLowerCase().contains(query.toLowerCase())) // Фильтруем по ключу (имя валюты)
-    );
-  });
+  if (mounted) {
+    setState(() {
+      _filteredCurrencyData = Map.fromEntries(
+        _currencyData.entries.where((entry) =>
+            entry.key.toLowerCase().contains(query.toLowerCase())) // Фильтруем по ключу (имя валюты)
+      );
+    });
+  }
 }
 
   @override

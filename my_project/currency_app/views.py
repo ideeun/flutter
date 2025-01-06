@@ -254,23 +254,24 @@ class PasswordResetRequest(APIView):
                 settings.DEFAULT_FROM_EMAIL,
                 [email],
                 fail_silently=False,
-html_message = '''
+html_message = f'''
 <html>
   <body style="text-align: center; background-color: white; padding: 100px 0;">
-    <h1 style="color: black; font-size: 32px">Сброс пароля.</h1>
-    <h3 style="color: black; font-size: 20px">
-      Был запрошен сброс пароля для пользователя {user.username},<br>
-      <span style="color: #FF4545">если это были не вы, не реагируйте на это письмо.</span><br>
-      Для сброса пароля нажмите кнопку ниже.
+    <h1 style="color: black; font-size: 28px">Password Reset</h1>
+    <h3 style="color: black; font-size: 18px">
+      A password reset request has been made for the user {user.username},<br>
+      <span style="color: #FF4545">if this wasn’t you, please ignore this email.</span><br>
+      To reset your password, click the button below.
     </h3>
     <a href="{reset_url}" style="color: #ffffff; text-decoration: none;">
       <button style="padding: 15px 50px; color: #ffffff; background-color: #6A4C9C; border-radius: 10px; border: none">
-        Сброс пароля
+        Reset Password
       </button>
     </a>
   </body>
 </html>
 '''
+
             )
             return Response({"message": "Password reset link sent"}, status=status.HTTP_200_OK)
         except User.DoesNotExist:

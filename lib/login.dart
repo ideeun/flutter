@@ -242,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-                    SizedBox(height: 25),
+                    SizedBox(height: 30),
                     ElevatedButton(
                       onPressed: _resetPassword,
                       style: ElevatedButton.styleFrom(
@@ -250,7 +250,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         foregroundColor: Colors.white,
                       ),
                       child: Text('Send Reset Link'),
+                    
                     ),
+                    SizedBox(height: 150,),
                   ],
                 ],
               ),

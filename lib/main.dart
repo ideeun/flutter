@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/login.dart';
+import 'package:flutter_application_1/splash_screen.dart';
 import 'tema.dart';
 import 'package:provider/provider.dart';
 import 'current_user.dart'; 
@@ -22,7 +23,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: Provider.of<ThemeProvider>(context).isDarkMode ? ThemeData.dark() : ThemeData.light(),
-      home: LoginScreen(),
+      home: SplashScreen(),
     );
   }
 }

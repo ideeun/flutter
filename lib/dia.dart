@@ -16,10 +16,8 @@ class ProfitChartScreen extends StatefulWidget {
 class _ProfitChartScreenState extends State<ProfitChartScreen>
     with SingleTickerProviderStateMixin<ProfitChartScreen> {
 
-  bool showRemaining = false;
   late AnimationController _glowController;
 
-  // Добавим переменную для хранения активного сектора
   int? _highlightedIndex;
 
   @override
@@ -40,31 +38,32 @@ class _ProfitChartScreenState extends State<ProfitChartScreen>
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);  
-  final isDarkMode = themeProvider.isDarkMode;  
+    final isDarkMode = themeProvider.isDarkMode;  
     return Scaffold(
       appBar: AppBar(
+        title: Text(
+          'Statistics',
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black,
+          ),
+        ),
         backgroundColor: isDarkMode 
-        ? Color.fromARGB(255, 15, 22, 36)
-        : Colors.white,
+          ? Color.fromARGB(255, 15, 22, 36)
+          : Colors.white,
       ),
       backgroundColor: isDarkMode 
         ? Color.fromARGB(255, 15, 22, 36)
         : Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: GestureDetector(
-          onDoubleTap: () {
-            setState(() {
-              showRemaining = !showRemaining;
-            });
-          },
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
               Text(
-                showRemaining ? 'Remaining' : 'Profit',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color:isDarkMode ? Colors.white: Colors.black),
-              ),
-              SizedBox(height: 100),
+              'Profit',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color:isDarkMode ? Colors.white: Colors.black),
+            ),
+              SizedBox(height: 30),
               Container(
                 height: 300,
                 child: Stack(
@@ -74,26 +73,25 @@ class _ProfitChartScreenState extends State<ProfitChartScreen>
                       PieChartData(
                         sections: widget.processedData
                             .where((data) =>
-                                (data[showRemaining ? 'remaining' : 'profit'] ?? 0.0) > 0)
+                                (data['profit'] ?? 0.0) > 0)
                             .map((data) {
-                          final value = data[showRemaining ? 'remaining' : 'profit'] ?? 0.0;
+                          final value = data['profit'] ?? 0.0;
                           final currency = data['currency'] ?? '';
                           final baseColor = data['color'] ?? ColorManager().getColorForCurrency(currency);
                           data['color'] = baseColor;
 
                           double total = widget.processedData.fold(0, (sum, item) {
-                            return sum + (item[showRemaining ? 'remaining' : 'profit'] ?? 0.0);
+                            return sum + (item['profit'] ?? 0.0);
                           });
                           double percentage = (value / total) * 100;
 
-                          // Проверяем, какой сектор выделен
                           bool isHighlighted = _highlightedIndex != null && _highlightedIndex == widget.processedData.indexOf(data);
 
                           return PieChartSectionData(
                             value: value,
                             title: '${percentage.toStringAsFixed(1)}%',
                             color: isHighlighted
-                                ? baseColor.withOpacity(0.8) // Подсветка выбранного сектора
+                                ? baseColor.withOpacity(0.8)
                                 : baseColor,
                             radius: _getRadius(value),
                             titleStyle: TextStyle(
@@ -129,19 +127,19 @@ class _ProfitChartScreenState extends State<ProfitChartScreen>
                   ],
                 ),
               ),
-              SizedBox(height: 80),
+              SizedBox(height: 20),
               Wrap(
                 spacing: 10.0,
                 runSpacing: 10.0,
                 children: widget.processedData
                     .where((data) =>
-                        (data[showRemaining ? 'remaining' : 'profit'] ?? 0.0) > 0)
+                        (data['profit'] ?? 0.0) > 0)
                     .map((data) {
                   final color = data['color'] ?? ColorManager().getColorForCurrency(data['currency']);
                   return GestureDetector(
                     onTap: () {
                       setState(() {
-                        _highlightedIndex = widget.processedData.indexOf(data); // Устанавливаем индекс выделенного сектора
+                        _highlightedIndex = widget.processedData.indexOf(data);
                       });
                     },
                     child: Row(
@@ -165,6 +163,59 @@ class _ProfitChartScreenState extends State<ProfitChartScreen>
                   );
                 }).toList(),
               ),
+              SizedBox(height: 100),
+              Text(
+                'Remaining Quantities',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.black),
+              ),
+              SizedBox(height: 40),
+              Container(
+                height: 200,
+                child: BarChart(
+                  BarChartData(
+  alignment: BarChartAlignment.spaceAround,
+  barGroups: widget.processedData
+      .where((data) => (data['buy_quantity'] - data['sell_quantity'] ?? 0) > 0)
+      .map((data) {
+    final color = data['color'] ?? ColorManager().getColorForCurrency(data['currency']);
+    final value = data['buy_quantity'] - data['sell_quantity'] ?? 0;
+    return BarChartGroupData(
+      x: widget.processedData.indexOf(data),
+      barRods: [
+        BarChartRodData(
+          toY: value.toDouble(),
+          color: color,
+          width: 20,
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ],
+      showingTooltipIndicators: [0],
+    );
+  }).toList(),
+  titlesData: FlTitlesData(
+    leftTitles: AxisTitles(
+      sideTitles: SideTitles(showTitles: false), // Отключить подписи слева
+    ),
+    bottomTitles: AxisTitles(
+      sideTitles: SideTitles(
+showTitles: true,
+      getTitlesWidget: (double value, TitleMeta meta) {
+        final index = value.toInt();
+        if (index >= 0 && index < widget.processedData.length) {
+          return Text(
+            widget.processedData[index]['currency'] ?? '',
+            style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+          );
+        }
+        return SizedBox.shrink();
+      },      ),
+    ),
+  ),
+  borderData: FlBorderData(show: false),
+  barTouchData: BarTouchData(enabled: true),
+),
+                ),
+              ),
             ],
           ),
         ),
@@ -173,15 +224,14 @@ class _ProfitChartScreenState extends State<ProfitChartScreen>
   }
 
   double _getRadius(double value) {
-  if (value.isFinite) {
-    final maxValue = widget.processedData
-        .map((e) => (showRemaining ? (e["remaining"] ?? 0.0) : (e['profit'] ?? 0.0)) as double)
-        .reduce(max); 
-    return 100 + (value / maxValue * 20);
+    if (value.isFinite) {
+      final maxValue = widget.processedData
+          .map((e) => (e['profit'] ?? 0.0) as double)
+          .reduce(max); 
+      return 100 + (value / maxValue * 20);
+    }
+    return 100;
   }
-  return 100; // или другое значение по умолчанию
-}
-
 }
 
 class ColorManager {

@@ -22,7 +22,8 @@ class _CashScreenState extends State<CashScreen> {
 
   Future<void> fetchEvents() async {
     try {
-      final eventsData = await Api.fetchEvents(); 
+      final eventsData = await Api.fetchEvents();
+      print('Events from API: $eventsData'); 
       setState(() {
         events = eventsData;
         isLoading = false;
@@ -36,73 +37,84 @@ class _CashScreenState extends State<CashScreen> {
   }
 
   List<Map<String, dynamic>> processTableData(List<Map<String, dynamic>> events) {
-    Map<String, List<Map<String, dynamic>>> groupedEvents = {};
+  Map<String, List<Map<String, dynamic>>> groupedEvents = {};
+  for (var event in events) {
+    String currency = event['currency'];
+    if (!groupedEvents.containsKey(currency)) {
+      groupedEvents[currency] = [];
+    }
+    groupedEvents[currency]?.add(event);
+  }
+
+  List<Map<String, dynamic>> processedData = [];
+  totalBuy = 0;
+  totalSell = 0;
+  totalProfitFromFormula = 0.0;
+  totalRemaining = 0.0;
+
+  groupedEvents.forEach((currency, events) {
+    double buyTotal = 0, buyCount = 0;
+    double sellTotal = 0, sellCount = 0;
+    double remaining = 0;
+      // Переменные для хранения количества
+
     for (var event in events) {
-      String currency = event['currency'];
-      if (!groupedEvents.containsKey(currency)) {
-        groupedEvents[currency] = [];
+      double quantity = double.tryParse(event['quantity'].toString()) ?? 0.0;
+      double total = double.tryParse(event['total'].toString()) ?? 0.0;
+
+      if (event['event_type'] == 'BUY') {
+        buyTotal += total;
+        buyCount += quantity;
+      } else if (event['event_type'] == 'SELL') {
+        sellTotal += total;
+        sellCount += quantity;
       }
-      groupedEvents[currency]?.add(event);
     }
 
-    List<Map<String, dynamic>> processedData = [];
-    totalBuy = 0;
-    totalSell = 0;
-    totalProfitFromFormula = 0.0;
-    totalRemaining = 0.0;
+    double buyAvg = buyCount > 0 ? buyTotal / buyCount : 0;
+    double sellAvg = sellCount > 0 ? sellTotal / sellCount : 0;
+    double profit = (sellAvg - buyAvg) * (sellCount <= buyCount ? sellCount : buyCount);
 
-    groupedEvents.forEach((currency, events) {
-      double buyTotal = 0, buyCount = 0;
-      double sellTotal = 0, sellCount = 0;
-      double remaining = 0;
+    remaining = sellTotal - buyTotal;
 
-      for (var event in events) {
-        double quantity = double.tryParse(event['quantity'].toString()) ?? 0.0;
-        double total = double.tryParse(event['total'].toString()) ?? 0.0;
+    totalProfitFromFormula += profit;
+    totalBuy += buyTotal;
+    totalSell += sellTotal;
+    totalRemaining += remaining;
 
-        if (event['event_type'] == 'BUY') {
-          buyTotal += total;
-          buyCount += quantity;
-        } else if (event['event_type'] == 'SELL') {
-          sellTotal += total;
-          sellCount += quantity;
-        }
-      }
-
-      double buyAvg = buyCount > 0 ? buyTotal / buyCount : 0;
-      double sellAvg = sellCount > 0 ? sellTotal / sellCount : 0;
-      double profit = (sellAvg - buyAvg) * (sellCount <= buyCount ? sellCount : buyCount);
-
-      remaining = sellTotal - buyTotal;
-
-      totalProfitFromFormula += profit;
-      totalBuy += buyTotal;
-      totalSell += sellTotal;
-      totalRemaining += remaining;
-
-      processedData.add({
-        'currency': currency,
-        'buy_total': buyTotal,
-        'buy_avg': buyAvg,
-        'sell_total': sellTotal,
-        'sell_avg': sellAvg,
-        'profit': profit,
-        'remaining': remaining,
-      });
+    processedData.add({
+      'currency': currency,
+      'buy_total': buyTotal,
+      'buy_avg': buyAvg,
+      'sell_total': sellTotal,
+      'sell_avg': sellAvg,
+      'profit': profit,
+      'remaining': remaining,
+      'buy_quantity': buyCount, // Добавлено количество покупок
+      'sell_quantity': sellCount, // Добавлено количество продаж
     });
+  });
 
-    return processedData;
-  }
+  return processedData;
+}
 
   
 
-void _sort<T>(Comparable<T> Function(Map<String, dynamic> d) getField, int columnIndex, bool ascending) {
+void _sort<T>(Comparable<T>? Function(Map<String, dynamic> d) getField, int columnIndex, bool ascending) {
   setState(() {
-    if (ascending) {
-      events.sort((a, b) => Comparable.compare(getField(a), getField(b)));
-    } else {
-      events.sort((a, b) => Comparable.compare(getField(b), getField(a)));
-    }
+    events.sort((a, b) {
+      final valueA = getField(a);
+      final valueB = getField(b);
+
+      if (valueA == null && valueB == null) return 0;
+      if (valueA == null) return ascending ? -1 : 1;
+      if (valueB == null) return ascending ? 1 : -1;
+
+      return ascending
+          ? Comparable.compare(valueA, valueB)
+          : Comparable.compare(valueB, valueA);
+    });
+
     sortColumnIndex = columnIndex;
     sortAscending = ascending;
   });

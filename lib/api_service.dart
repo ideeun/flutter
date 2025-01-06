@@ -120,7 +120,8 @@ class Api {
   // Метод для очистки событий
   static Future<void> clearEvents() async {
     final response = await http.delete(Uri.parse('$baseUrl/events/'));
-    if (response.statusCode != 200) {
+    print(response.statusCode);
+    if (response.statusCode != 204) {
       throw Exception('Failed to clear events: ${response.body}');
     }
   }

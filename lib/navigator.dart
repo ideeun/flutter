@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Цвета для фона
     final backgroundColors = [
       isDarkMode
-          ? const Color.fromARGB(255, 57, 68, 96) // Тёмная тема для индекса 0
+          ? const Color.fromARGB(255, 54, 68, 103) // Тёмная тема для индекса 0
           : const Color.fromARGB(255, 234, 246, 255), // Светлая тема для индекса 0
       isDarkMode ? const Color.fromARGB(255, 15, 22, 36) : Colors.white, // Индекс 1
       isDarkMode ? const Color.fromARGB(255, 15, 22, 36) : Colors.white, // Индекс 2

@@ -352,7 +352,7 @@ Widget _buildDialogButton(String label, Function() onPressed) {
                             ? const Color.fromARGB(255, 116, 141, 245)
                             : (isDarkMode
                                 ? Color.fromARGB(255, 120, 120, 120).withOpacity(0.15)
-                                : const Color.fromARGB(255, 186, 184, 184).withOpacity(0.2)),
+                                : const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2)),
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: isSelected
                             ? [
